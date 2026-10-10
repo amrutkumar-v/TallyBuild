@@ -3,7 +3,9 @@
 **Status:** Phase 02B contract document. **Phase 02C implemented all three MVP endpoints in
 `backend/`** — `GET /api/v1/health`, `GET /api/v1/products` and
 `POST /api/v1/estimates/calculate` — as a pytest-tested FastAPI service that mirrors the
-TypeScript core. The frontend does **not** consume the API yet. The sections below remain the
+TypeScript core. The frontend consumes the API from the New Estimate flow via the typed client
+in `src/api/` (Phase 02D) — it fetches the catalogue, posts material lines to calculate and
+handles loading / validation / error / offline states. The sections below remain the
 reference for the request, response and error shapes; where this document is ambiguous, the
 implementation follows §2, §4–§6 and notes in [§5.2](#52-get-apiv1products--mvp).
 
@@ -499,7 +501,7 @@ Until these exist, the frontend keeps its current browser-only (`localStorage`) 
 
 ---
 
-## 8. Frontend integration types (proposed)
+## 8. Frontend integration types (implemented)
 
 ### 8.1 Reuse from the existing core (already implemented)
 
@@ -514,7 +516,7 @@ Import from `src/estimation`:
 Existing non-core types in `src/types/index.ts`: `Estimate`, `EstimateStatus`, `ProjectType`,
 `EstimateOrigin`, `NewEstimateFormValues`, `NewEstimateFormErrors`, `EstimateDraftInput`.
 
-### 8.2 Proposed new API types (to live in `src/api/types.ts` when integration starts)
+### 8.2 API types (implemented in `src/api/types.ts`)
 
 ```ts
 import type {
@@ -565,16 +567,18 @@ export type ApiResult<T> =
   | { ok: false; error: { code: ApiErrorCode; message: string; status: number | null; details?: EstimateValidationError[] } };
 ```
 
-A thin client function would return `EstimateCalculation`-compatible output:
+A thin client function returns `EstimateCalculation`-compatible output:
 
 ```ts
-// proposed, not implemented
+// implemented in src/api/estimates.ts
 async function calculateEstimateViaApi(
   request: CalculateEstimateRequest,
 ): Promise<EstimateCalculation> // { ok:true, result } | { ok:false, errors }
 ```
 
 so existing UI code that already understands `EstimateCalculation` can consume it unchanged.
+The primary client `calculateEstimate(request)` returns the richer `ApiResult<EstimateResult>`
+and is what the New Estimate screen uses.
 
 ### 8.3 Classification
 
@@ -582,9 +586,9 @@ so existing UI code that already understands `EstimateCalculation` can consume i
 | ---- | ------ |
 | `MaterialProduct`, `PriceSource`, `EstimateRequest`, `EstimateResult`, `EstimateValidationError`, `EstimateCalculation`, `MeasurementUnit`, `EstimateErrorCode` | **Existing (implemented)** in `src/estimation/` |
 | `Estimate`, `EstimateStatus`, `ProjectType`, form types | **Existing (implemented)** in `src/types/` |
-| `ApiErrorCode`, `ApiErrorResponse`, `HealthResponse`, `ProductListResponse`, `ApiResult<T>`, `CalculateEstimateRequest`, `CalculateEstimateResponse` | **Proposed** (do not create until integration starts) |
+| `ApiErrorCode`, `ApiFailure`, `ApiResult`, `HealthResponse`, `ProductListResponse` | **Implemented** in `src/api/types.ts` (Phase 02D) |
 | `SavedEstimate`, persistence endpoints | **Proposed / deferred (Phase 04)** |
-| Line-item input UI, API client, result UI | **Not implemented** — Phase 02C |
+| Line-item input UI, API client, result UI | **Implemented** (`src/api/`, `LineItemsEditor`, `EstimateResultCard`) (Phase 02D) |
 
 ---
 

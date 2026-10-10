@@ -46,4 +46,5 @@ export interface EstimateDraftInput {
   location: string;
   projectType: ProjectType;
   notes?: string;
+  estimatedAmount?: number | null;
 }

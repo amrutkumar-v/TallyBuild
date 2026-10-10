@@ -12,7 +12,7 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
 }
 
 .actions {
@@ -30,33 +30,32 @@
   color: var(--color-ink-muted);
 }
 
-.success {
+.savedNote {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-3);
-  padding: var(--space-4) var(--space-2);
-}
-
-.successIcon {
-  color: var(--color-success);
-}
-
-.successTitle {
-  font-size: var(--text-xl);
-}
-
-.successText {
-  max-width: 52ch;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
   color: var(--color-ink-secondary);
 }
 
-.successActions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  margin-top: var(--space-2);
+.savedNote svg {
+  flex-shrink: 0;
+  color: var(--color-success);
+}
+
+.reason {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .aside {

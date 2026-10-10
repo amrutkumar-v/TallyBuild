@@ -101,7 +101,7 @@ export function EstimatesProvider({ children }: EstimatesProviderProps): ReactEl
       location: input.location,
       projectType: input.projectType,
       createdAt: new Date().toISOString(),
-      estimatedAmount: null,
+      estimatedAmount: input.estimatedAmount ?? null,
       status: 'draft',
       origin: 'local',
       notes: input.notes,

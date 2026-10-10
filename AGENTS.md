@@ -12,13 +12,17 @@ scenario analysis.
 **Current status:** Phase 00 (foundation) and Phase 01 (premium UI) are implemented, plus
 Phase 02A (a deterministic, pure-TS estimation core under `src/estimation/` — units,
 rounding, sample catalogue, `calculateEstimate`), Phase 02B (API contract docs under
-`docs/`) and Phase 02C (a FastAPI service under `backend/` that reproduces the core over
-HTTP — health, products and calculate endpoints, pytest-tested).
+`docs/`), Phase 02C (a FastAPI service under `backend/` that reproduces the core over HTTP —
+health, products and calculate endpoints, pytest-tested) and Phase 02D (a typed frontend API
+client under `src/api/` that wires the New Estimate flow to that service).
 
-The TS core and the FastAPI service are **not yet wired into the UI**. The app is fully
-client-side and the browser UI makes no server calls. There is no database, authentication,
-AI service, pricing API or deployment config. All displayed figures and API prices are
-illustrative demo data.
+The New Estimate screen now fetches the product catalogue from the API and sends material
+lines to `POST /api/v1/estimates/calculate`; it also stores the returned total on the local
+draft. When the API is unreachable the app stays usable and falls back to the clearly
+labelled **offline demo catalogue** — it never fabricates a total. All other screens remain
+client-side and make no server calls. There is no database, authentication, AI service,
+pricing API or deployment config. All displayed figures and API prices are illustrative demo
+data.
 
 **Never claim unimplemented functionality works.** Placeholders must be visibly marked as
 coming soon, and demo values must be labelled as illustrative.
@@ -46,7 +50,10 @@ src/
       FilterChips.tsx      single-select chip group (aria-pressed buttons)
       BrandMark.tsx        logo mark
     dashboard/             Dashboard-only sections (SummaryGrid, RecentEstimates, HowItHelps)
-    estimates/             EstimatesToolbar + EstimatesTable
+    estimates/             EstimatesToolbar + EstimatesTable + LineItemsEditor +
+                           EstimateResultCard (New Estimate material + result UI)
+  api/                     Typed estimation-API client (types, fetch wrapper, health,
+                           products, estimates endpoints) — no React, never fabricates data
   constants/               navigation.ts (nav items, page titles), labels.ts (enum labels)
   data/sampleEstimates.ts  Hard-coded demo estimates (origin: 'sample')
   estimation/              Pure-TS deterministic cost core (units, rounding, catalogue,
@@ -73,10 +80,13 @@ backend/
 
 Data flow: `EstimatesProvider` holds sample estimates plus locally created drafts,
 persists user drafts and the sample-data toggle to `localStorage`, and exposes them via
-`useEstimates()`. Pages derive filtered views locally. The browser app makes no server call;
-the FastAPI service in `backend/` is an independent, optional implementation of the estimation
-core. The TypeScript core is the source of truth — `backend/app/estimation/` must mirror it
-exactly (same error codes, messages, validation order and rounding).
+`useEstimates()`. Pages derive filtered views locally. The New Estimate page additionally
+calls the estimation API through `src/api/` — it loads the catalogue, posts material lines to
+`POST /api/v1/estimates/calculate` and saves the returned total on the local draft; when the
+API is unreachable it shows the labelled offline demo catalogue and disables calculation
+rather than fabricating a total. All other screens are client-side. The TypeScript core is
+the source of truth — `backend/app/estimation/` must mirror it exactly (same error codes,
+messages, validation order and rounding).
 
 ## Coding rules
 

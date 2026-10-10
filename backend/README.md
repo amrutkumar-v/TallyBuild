@@ -47,6 +47,10 @@ cd backend
 The dev server allows CORS from `http://localhost:5173` and `http://127.0.0.1:5173`
 (the Vite dev server). No authentication is required.
 
+The frontend consumes this service from the New Estimate flow. In development the Vite dev
+server proxies `/api` to `http://localhost:8000`, so start this service alongside `npm run
+dev`. If the service is stopped the app shows an offline demo catalogue instead of failing.
+
 ## Test and lint
 
 ```bash
@@ -82,5 +86,5 @@ source of truth; do not introduce new calculation rules, error codes or unit con
 ## Not implemented
 
 - No persistence, database or authentication (deferred to Phase 04).
-- The frontend does not call this API yet.
 - No AI or pricing service; `/estimates/calculate` is purely deterministic.
+- No production hosting or extra CORS origins beyond the local Vite dev server.

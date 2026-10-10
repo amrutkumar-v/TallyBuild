@@ -1,21 +1,26 @@
 # Phase 02 Integration Plan — TallyBuild AI
 
-**Status:** planning only. This document is a handoff for the frontend and backend teammates.
-No application code is written or changed in Phase 02B. See
+**Status:** implemented. This document began as a Phase 02B handoff plan; Phase 02C shipped
+the FastAPI service and Phase 02D wired the frontend to it. The plan is retained as the
+reference for the data flow, UX states and acceptance criteria. See
 [`docs/api-contract.md`](./api-contract.md) for the wire contract and
 [`docs/estimation-engine.md`](./estimation-engine.md) for the deterministic core.
 
+> **Implemented in Phase 02D:** the API client (`src/api/`), product fetching with a labelled
+> offline fallback, the line-item editor (`LineItemsEditor`), the result view
+> (`EstimateResultCard`), the wired Calculate flow, and the Vite dev proxy. See the checklist
+> in [§8](#8-integration-checklist).
+
 ## 0. Where we are
 
-- Phase 00, 01 and 02A are complete and pushed. `main` has Phases 00–01; the Phase 02A
-  estimation core lives on `feature/phase-02-estimation-core` (commit
-  `e61e13cc858c0857d62ef509569e1c1a9e4aae91`).
-- `src/estimation/` is a pure, tested, deterministic calculation core (26 tests). It is **not**
-  wired into the UI.
-- The New Estimate form (`src/pages/NewEstimatePage.tsx`) captures **project details only**
-  (name, location, type, notes) and saves a browser-local draft with `estimatedAmount: null`.
-  There are **no line items yet** and **no network calls anywhere**.
-- There is no backend, persistence, auth or live pricing.
+- Phases 00–02D are complete. The estimation core, the FastAPI service (`backend/`, Phase
+  02C) and the frontend client + wiring (`src/api/`, Phase 02D) all exist and are tested.
+- `src/estimation/` remains the pure, tested, deterministic source of truth.
+- The New Estimate form now captures project details **and** material lines, fetches the
+  catalogue from `GET /api/v1/products`, posts lines to `POST /api/v1/estimates/calculate`
+  and stores the returned total on the local draft. With the service stopped it falls back to
+  the labelled **offline demo catalogue** and disables Calculate.
+- There is still no persistence, auth, AI or live pricing.
 
 ## 1. Target data flow
 
@@ -158,18 +163,19 @@ keep working offline throughout.
 
 ## 8. Integration checklist
 
-- [ ] Contract decisions in `docs/api-contract.md` §10 agreed by both teammates.
-- [ ] `GET /api/v1/health` implemented and consumed.
-- [ ] `GET /api/v1/products` implemented; frontend fetches it with a labelled offline fallback.
-- [ ] `POST /api/v1/estimates/calculate` implemented and matches the core exactly.
-- [ ] Shared golden fixtures wired into both test suites and passing.
-- [ ] Envelope + status-code mapping implemented and handled by the client.
-- [ ] CORS configured for local dev; Vite proxy added (dev only).
-- [ ] Line-item input and result UI shipped with loading/validation/error/empty states.
-- [ ] Illustrative-price labelling visible on catalogue and results.
-- [ ] Offline/no-backend behaviour verified.
-- [ ] Frontend gates green (typecheck, lint, test, build).
-- [ ] Docs updated; phase committed separately per `AGENTS.md`.
+- [x] Contract decisions in `docs/api-contract.md` §10 agreed by both teammates.
+- [x] `GET /api/v1/health` implemented and consumed.
+- [x] `GET /api/v1/products` implemented; frontend fetches it with a labelled offline fallback.
+- [x] `POST /api/v1/estimates/calculate` implemented and matches the core exactly.
+- [x] Shared golden fixtures wired into both test suites and passing.
+- [x] Envelope + status-code mapping implemented and handled by the client.
+- [x] CORS configured for local dev; Vite proxy added (dev only).
+- [x] Line-item input and result UI shipped with loading/validation/error/empty states.
+- [x] Illustrative-price labelling visible on catalogue and results.
+- [ ] Offline/no-backend behaviour verified in a browser (offline states are implemented and
+      covered by client unit tests; a manual browser pass is still pending).
+- [x] Frontend gates green (typecheck, lint, test, build).
+- [x] Docs updated; phase committed separately per `AGENTS.md`.
 
 ## 9. Risks and mitigations
 

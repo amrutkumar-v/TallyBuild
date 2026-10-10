@@ -68,6 +68,11 @@ interface TextFieldProps {
   hint?: string;
   placeholder?: string;
   maxLength?: number;
+  type?: string;
+  min?: string | number;
+  step?: string | number;
+  inputMode?: 'decimal' | 'numeric' | undefined;
+  disabled?: boolean;
 }
 
 export function TextField({
@@ -80,17 +85,26 @@ export function TextField({
   hint,
   placeholder,
   maxLength,
+  type = 'text',
+  min,
+  step,
+  inputMode,
+  disabled = false,
 }: TextFieldProps): ReactElement {
   return (
     <FieldShell id={id} label={label} required={required} error={error} hint={hint}>
       <input
         id={id}
-        type="text"
+        type={type}
         className={cn(styles.control, error && styles.controlError)}
         value={value}
         placeholder={placeholder}
         maxLength={maxLength}
+        min={min}
+        step={step}
+        inputMode={inputMode}
         required={required}
+        disabled={disabled}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, error, hint)}
         onChange={(event) => onChange(event.target.value)}
@@ -114,6 +128,7 @@ interface SelectFieldProps {
   error?: string;
   hint?: string;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export function SelectField({
@@ -126,6 +141,7 @@ export function SelectField({
   error,
   hint,
   placeholder = 'Select an option',
+  disabled = false,
 }: SelectFieldProps): ReactElement {
   return (
     <FieldShell id={id} label={label} required={required} error={error} hint={hint}>
@@ -134,6 +150,7 @@ export function SelectField({
         className={cn(styles.control, styles.select, error && styles.controlError)}
         value={value}
         required={required}
+        disabled={disabled}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy(id, error, hint)}
         onChange={(event) => onChange(event.target.value)}
