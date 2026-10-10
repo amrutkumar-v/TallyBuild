@@ -9,8 +9,10 @@ Estimation of Building Products. It is a construction-tech workspace for creatin
 building-product cost estimates, comparing product alternatives and running what-if
 scenario analysis.
 
-**Current status:** Phase 00 (foundation) and Phase 01 (premium UI) are implemented. The
-app is fully client-side. There is no backend, database, authentication, AI service,
+**Current status:** Phase 00 (foundation) and Phase 01 (premium UI) are implemented, plus
+Phase 02A: a deterministic, pure-TS estimation core under `src/estimation/` (units, rounding,
+sample catalogue, `calculateEstimate`). The core is tested but is **not** wired into the UI
+yet. The app is fully client-side. There is no backend, database, authentication, AI service,
 pricing API or deployment config. All displayed figures are illustrative demo data.
 
 **Never claim unimplemented functionality works.** Placeholders must be visibly marked as
@@ -42,6 +44,8 @@ src/
     estimates/             EstimatesToolbar + EstimatesTable
   constants/               navigation.ts (nav items, page titles), labels.ts (enum labels)
   data/sampleEstimates.ts  Hard-coded demo estimates (origin: 'sample')
+  estimation/              Pure-TS deterministic cost core (units, rounding, catalogue,
+                           calculateEstimate) — no React/network; see docs/estimation-engine.md
   pages/                   Route screens: Dashboard, Estimates, Comparison, WhatIf,
                            NewEstimate, NotFound
   store/                   estimates-context.ts (context + hook), EstimatesProvider.tsx
@@ -103,6 +107,7 @@ Run all of these from the repository root before considering any change complete
 npm install        # or npm ci when package-lock.json exists
 npm run typecheck  # tsc -b (strict), must exit 0
 npm run lint       # eslint ., must exit 0 (warnings should be fixed too)
+npm test           # vitest run, must exit 0
 npm run build      # tsc -b && vite build, must exit 0
 npm run dev        # manual smoke test: app loads, routes and filters work
 ```

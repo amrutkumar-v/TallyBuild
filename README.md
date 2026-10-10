@@ -49,6 +49,8 @@ The dev server starts at `http://localhost:5173` (Vite prints the exact URL).
 | `npm run dev`       | Start the Vite development server with hot module reload  |
 | `npm run typecheck` | Run the TypeScript compiler in build-check mode (no emit) |
 | `npm run lint`      | Run ESLint across the project                             |
+| `npm test`          | Run the Vitest unit-test suites once                      |
+| `npm run test:watch`| Run Vitest in watch mode during development               |
 | `npm run build`     | Type-check, then produce an optimized production build    |
 | `npm run preview`   | Serve the production build locally for smoke testing      |
 
@@ -63,6 +65,7 @@ src/
     estimates/     Estimates toolbar and table
   constants/       Navigation items, labels and page titles
   data/            Sample (demo) estimates, clearly flagged as illustrative
+  estimation/      Deterministic cost-calculation core (units, rounding, catalogue)
   pages/           Route-level screens
   store/           Client-side estimates context backed by localStorage
   styles/          Global tokens and base styles
