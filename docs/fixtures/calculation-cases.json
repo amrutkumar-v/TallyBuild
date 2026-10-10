@@ -1,0 +1,318 @@
+{
+  "version": 1,
+  "description": "Shared TypeScript/Python golden fixtures for the deterministic estimation core. Source of truth: docs/api-contract.md sections 4 and 9. Consumed by src/estimation/shared-fixture.test.ts and backend/tests/test_shared_fixture.py.",
+  "notes": [
+    "Expected values are computed by hand from the documented rules (per-line half-up rounding to 2 decimals, then a rounded sum) and were NOT produced by calling the implementation under test.",
+    "catalogue 'sample' means the built-in illustrative sample catalogue (9 products) in src/estimation/data/sampleProducts.ts and backend/app/estimation/sample_products.py.",
+    "catalogue 'custom' means the products listed in customCatalogue below.",
+    "Non-finite numbers are encoded as the strings \"Infinity\", \"-Infinity\" and \"NaN\"; harnesses convert them to the language's non-finite float.",
+    "priceSource null marks a deliberately invalid product used for INVALID_PRICE_SOURCE cases."
+  ],
+  "rounding": {
+    "currencyDecimals": 2,
+    "policy": "half-up; applied per line, then the sum is rounded again"
+  },
+  "illustrativePriceSource": {
+    "label": "Illustrative demo data — not a verified market price",
+    "priceDate": "2026-09-01",
+    "currency": "INR",
+    "isIllustrative": true
+  },
+  "customCatalogue": [
+    {
+      "id": "half-paise",
+      "name": "Half Paise Item",
+      "category": "Test",
+      "unit": "piece",
+      "unitPrice": 0.005,
+      "priceSource": {
+        "label": "Illustrative demo data — not a verified market price",
+        "priceDate": "2026-09-01",
+        "currency": "INR",
+        "isIllustrative": true
+      }
+    },
+    {
+      "id": "small-paise",
+      "name": "Sub Paise Item",
+      "category": "Test",
+      "unit": "piece",
+      "unitPrice": 0.004,
+      "priceSource": {
+        "label": "Illustrative demo data — not a verified market price",
+        "priceDate": "2026-09-01",
+        "currency": "INR",
+        "isIllustrative": true
+      }
+    },
+    {
+      "id": "metre-fractional",
+      "name": "Fractional Metre Item",
+      "category": "Test",
+      "unit": "m",
+      "unitPrice": 33.333,
+      "priceSource": {
+        "label": "Illustrative demo data — not a verified market price",
+        "priceDate": "2026-09-01",
+        "currency": "INR",
+        "isIllustrative": true
+      }
+    },
+    {
+      "id": "zero-price",
+      "name": "Zero Price Item",
+      "category": "Test",
+      "unit": "piece",
+      "unitPrice": 0,
+      "priceSource": {
+        "label": "Illustrative demo data — not a verified market price",
+        "priceDate": "2026-09-01",
+        "currency": "INR",
+        "isIllustrative": true
+      }
+    },
+    {
+      "id": "negative-price",
+      "name": "Negative Price Item",
+      "category": "Test",
+      "unit": "piece",
+      "unitPrice": -5,
+      "priceSource": {
+        "label": "Illustrative demo data — not a verified market price",
+        "priceDate": "2026-09-01",
+        "currency": "INR",
+        "isIllustrative": true
+      }
+    },
+    {
+      "id": "infinite-price",
+      "name": "Infinite Price Item",
+      "category": "Test",
+      "unit": "piece",
+      "unitPrice": "Infinity",
+      "priceSource": {
+        "label": "Illustrative demo data — not a verified market price",
+        "priceDate": "2026-09-01",
+        "currency": "INR",
+        "isIllustrative": true
+      }
+    },
+    {
+      "id": "no-source",
+      "name": "Missing Source Item",
+      "category": "Test",
+      "unit": "piece",
+      "unitPrice": 10,
+      "priceSource": null
+    }
+  ],
+  "roundingCases": [
+    { "input": 1.005, "expected": 1.01 },
+    { "input": 2.675, "expected": 2.68 },
+    { "input": 0.005, "expected": 0.01 },
+    { "input": 10.124, "expected": 10.12 },
+    { "input": 1.111, "expected": 1.11 },
+    { "input": 100, "expected": 100 },
+    { "input": 4100, "expected": 4100 },
+    { "input": 0, "expected": 0 }
+  ],
+  "cases": [
+    {
+      "id": "normal-valid-estimate",
+      "description": "Three sample lines: 320x410 + 4.5x68000 + 12000x9 = 545200.",
+      "catalogue": "sample",
+      "request": {
+        "projectName": "Demo villa",
+        "lines": [
+          { "productId": "cement-opc-53-grade", "quantity": 320, "unit": "bag", "label": "Foundation" },
+          { "productId": "steel-tmt-fe500", "quantity": 4.5, "unit": "tonne", "label": "Reinforcement" },
+          { "productId": "brick-red-clay", "quantity": 12000, "unit": "piece" }
+        ]
+      },
+      "expect": {
+        "ok": true,
+        "currency": "INR",
+        "projectName": "Demo villa",
+        "itemCount": 3,
+        "lineSubtotals": [131200, 306000, 108000],
+        "subtotal": 545200,
+        "total": 545200
+      }
+    },
+    {
+      "id": "single-line-subtotal",
+      "description": "10 bags of cement at 410 = 4100.",
+      "catalogue": "sample",
+      "request": { "lines": [{ "productId": "cement-opc-53-grade", "quantity": 10 }] },
+      "expect": {
+        "ok": true,
+        "currency": "INR",
+        "itemCount": 1,
+        "lineSubtotals": [4100],
+        "subtotal": 4100,
+        "total": 4100
+      }
+    },
+    {
+      "id": "zero-quantity",
+      "description": "Zero quantity is valid and yields a zero subtotal.",
+      "catalogue": "sample",
+      "request": { "lines": [{ "productId": "brick-red-clay", "quantity": 0 }] },
+      "expect": {
+        "ok": true,
+        "currency": "INR",
+        "itemCount": 1,
+        "lineSubtotals": [0],
+        "subtotal": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "invalid-negative-quantity",
+      "description": "Negative quantity is rejected with INVALID_QUANTITY.",
+      "catalogue": "sample",
+      "request": { "lines": [{ "productId": "brick-red-clay", "quantity": -5 }] },
+      "expect": { "ok": false, "errorCodes": ["INVALID_QUANTITY"], "lineIndexes": [0], "productIds": ["brick-red-clay"] }
+    },
+    {
+      "id": "invalid-nan-quantity",
+      "description": "NaN quantity is rejected with INVALID_QUANTITY.",
+      "catalogue": "sample",
+      "request": { "lines": [{ "productId": "brick-red-clay", "quantity": "NaN" }] },
+      "expect": { "ok": false, "errorCodes": ["INVALID_QUANTITY"], "lineIndexes": [0] }
+    },
+    {
+      "id": "invalid-infinite-quantity",
+      "description": "Infinite quantity is rejected with INVALID_QUANTITY.",
+      "catalogue": "sample",
+      "request": { "lines": [{ "productId": "brick-red-clay", "quantity": "Infinity" }] },
+      "expect": { "ok": false, "errorCodes": ["INVALID_QUANTITY"], "lineIndexes": [0] }
+    },
+    {
+      "id": "missing-product",
+      "description": "Unknown productId is rejected with MISSING_PRODUCT.",
+      "catalogue": "sample",
+      "request": { "lines": [{ "productId": "does-not-exist", "quantity": 1 }] },
+      "expect": { "ok": false, "errorCodes": ["MISSING_PRODUCT"], "lineIndexes": [0], "productIds": ["does-not-exist"] }
+    },
+    {
+      "id": "incompatible-unit",
+      "description": "kg on a bag product is INCOMPATIBLE_UNIT.",
+      "catalogue": "sample",
+      "request": { "lines": [{ "productId": "cement-opc-53-grade", "quantity": 1, "unit": "kg" }] },
+      "expect": { "ok": false, "errorCodes": ["INCOMPATIBLE_UNIT"], "lineIndexes": [0] }
+    },
+    {
+      "id": "unit-conversion-unsupported",
+      "description": "kg on a tonne product is same-family but conversion is unsupported.",
+      "catalogue": "sample",
+      "request": { "lines": [{ "productId": "steel-tmt-fe500", "quantity": 1, "unit": "kg" }] },
+      "expect": { "ok": false, "errorCodes": ["UNIT_CONVERSION_UNSUPPORTED"], "lineIndexes": [0] }
+    },
+    {
+      "id": "unsupported-unit",
+      "description": "An unknown unit literal is INVALID_UNIT.",
+      "catalogue": "sample",
+      "request": { "lines": [{ "productId": "cement-opc-53-grade", "quantity": 1, "unit": "litre" }] },
+      "expect": { "ok": false, "errorCodes": ["INVALID_UNIT"], "lineIndexes": [0] }
+    },
+    {
+      "id": "empty-lines",
+      "description": "An empty line list is EMPTY_REQUEST.",
+      "catalogue": "sample",
+      "request": { "lines": [] },
+      "expect": { "ok": false, "errorCodes": ["EMPTY_REQUEST"] }
+    },
+    {
+      "id": "rounding-half-paise-twice",
+      "description": "0.005 rounds half-up to 0.01 per line; two lines sum to 0.02.",
+      "catalogue": "custom",
+      "request": {
+        "lines": [
+          { "productId": "half-paise", "quantity": 1 },
+          { "productId": "half-paise", "quantity": 1 }
+        ]
+      },
+      "expect": {
+        "ok": true,
+        "currency": "INR",
+        "itemCount": 2,
+        "lineSubtotals": [0.01, 0.01],
+        "subtotal": 0.02,
+        "total": 0.02
+      }
+    },
+    {
+      "id": "rounding-down-sub-paise",
+      "description": "0.004 rounds down to 0.",
+      "catalogue": "custom",
+      "request": { "lines": [{ "productId": "small-paise", "quantity": 1 }] },
+      "expect": {
+        "ok": true,
+        "currency": "INR",
+        "itemCount": 1,
+        "lineSubtotals": [0],
+        "subtotal": 0,
+        "total": 0
+      }
+    },
+    {
+      "id": "rounding-fractional-quantity",
+      "description": "33.333 x 3 = 99.999 rounds to 100.",
+      "catalogue": "custom",
+      "request": { "lines": [{ "productId": "metre-fractional", "quantity": 3 }] },
+      "expect": {
+        "ok": true,
+        "currency": "INR",
+        "itemCount": 1,
+        "lineSubtotals": [100],
+        "subtotal": 100,
+        "total": 100
+      }
+    },
+    {
+      "id": "invalid-price-zero",
+      "description": "A zero unit price is INVALID_PRICE.",
+      "catalogue": "custom",
+      "request": { "lines": [{ "productId": "zero-price", "quantity": 1 }] },
+      "expect": { "ok": false, "errorCodes": ["INVALID_PRICE"], "lineIndexes": [0] }
+    },
+    {
+      "id": "invalid-price-negative",
+      "description": "A negative unit price is INVALID_PRICE.",
+      "catalogue": "custom",
+      "request": { "lines": [{ "productId": "negative-price", "quantity": 1 }] },
+      "expect": { "ok": false, "errorCodes": ["INVALID_PRICE"], "lineIndexes": [0] }
+    },
+    {
+      "id": "invalid-price-non-finite",
+      "description": "A non-finite unit price is INVALID_PRICE.",
+      "catalogue": "custom",
+      "request": { "lines": [{ "productId": "infinite-price", "quantity": 1 }] },
+      "expect": { "ok": false, "errorCodes": ["INVALID_PRICE"], "lineIndexes": [0] }
+    },
+    {
+      "id": "invalid-price-source",
+      "description": "A product without price source metadata is INVALID_PRICE_SOURCE.",
+      "catalogue": "custom",
+      "request": { "lines": [{ "productId": "no-source", "quantity": 1 }] },
+      "expect": { "ok": false, "errorCodes": ["INVALID_PRICE_SOURCE"], "lineIndexes": [0] }
+    },
+    {
+      "id": "multiple-failing-lines",
+      "description": "All failing lines are collected: line 0 MISSING_PRODUCT, line 1 INVALID_QUANTITY.",
+      "catalogue": "sample",
+      "request": {
+        "lines": [
+          { "productId": "does-not-exist", "quantity": 1 },
+          { "productId": "brick-red-clay", "quantity": -5 }
+        ]
+      },
+      "expect": {
+        "ok": false,
+        "errorCodes": ["MISSING_PRODUCT", "INVALID_QUANTITY"],
+        "lineIndexes": [0, 1]
+      }
+    }
+  ]
+}
