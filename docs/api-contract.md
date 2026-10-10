@@ -1,8 +1,11 @@
 # API Contract — TallyBuild AI
 
-**Status:** Phase 02B planning document. **Nothing in this document is implemented yet.**
-There is currently no backend in this repository. This contract describes the API that the
-FastAPI backend (Phase 02) is expected to expose and the frontend is expected to consume.
+**Status:** Phase 02B contract document. **Phase 02C implemented all three MVP endpoints in
+`backend/`** — `GET /api/v1/health`, `GET /api/v1/products` and
+`POST /api/v1/estimates/calculate` — as a pytest-tested FastAPI service that mirrors the
+TypeScript core. The frontend does **not** consume the API yet. The sections below remain the
+reference for the request, response and error shapes; where this document is ambiguous, the
+implementation follows §2, §4–§6 and notes in [§5.2](#52-get-apiv1products--mvp).
 
 The deterministic TypeScript estimation core in `src/estimation/` is the **source of truth**
 for calculation behaviour. The backend must reproduce it exactly; it must not introduce new

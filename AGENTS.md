@@ -10,10 +10,15 @@ building-product cost estimates, comparing product alternatives and running what
 scenario analysis.
 
 **Current status:** Phase 00 (foundation) and Phase 01 (premium UI) are implemented, plus
-Phase 02A: a deterministic, pure-TS estimation core under `src/estimation/` (units, rounding,
-sample catalogue, `calculateEstimate`). The core is tested but is **not** wired into the UI
-yet. The app is fully client-side. There is no backend, database, authentication, AI service,
-pricing API or deployment config. All displayed figures are illustrative demo data.
+Phase 02A (a deterministic, pure-TS estimation core under `src/estimation/` — units,
+rounding, sample catalogue, `calculateEstimate`), Phase 02B (API contract docs under
+`docs/`) and Phase 02C (a FastAPI service under `backend/` that reproduces the core over
+HTTP — health, products and calculate endpoints, pytest-tested).
+
+The TS core and the FastAPI service are **not yet wired into the UI**. The app is fully
+client-side and the browser UI makes no server calls. There is no database, authentication,
+AI service, pricing API or deployment config. All displayed figures and API prices are
+illustrative demo data.
 
 **Never claim unimplemented functionality works.** Placeholders must be visibly marked as
 coming soon, and demo values must be labelled as illustrative.
@@ -53,11 +58,25 @@ src/
   styles/base.css          Reset, element defaults, focus styles, utilities
   types/index.ts           Shared types (Estimate, status unions, form types, ...)
   utils/                   format.ts (currency/date), cn.ts (class joiner)
+backend/
+  app/
+    main.py                FastAPI app factory + CORS
+    config.py              Service constants (name, version, API prefix, CORS origins)
+    schemas.py             Pydantic request/response models (single source of wire shapes)
+    errors.py              Error envelope, ApiError, exception handlers
+    routers/               health.py, products.py, estimates.py
+    estimation/            Python port of the estimation core (units, money, catalogue,
+                           calculate) — mirrors src/estimation/ exactly
+  tests/                   pytest suite (health, products, calculate, rounding)
+  pyproject.toml           pytest + ruff configuration (ruff line-length 100)
 ```
 
 Data flow: `EstimatesProvider` holds sample estimates plus locally created drafts,
 persists user drafts and the sample-data toggle to `localStorage`, and exposes them via
-`useEstimates()`. Pages derive filtered views locally. There is no server call anywhere.
+`useEstimates()`. Pages derive filtered views locally. The browser app makes no server call;
+the FastAPI service in `backend/` is an independent, optional implementation of the estimation
+core. The TypeScript core is the source of truth — `backend/app/estimation/` must mirror it
+exactly (same error codes, messages, validation order and rounding).
 
 ## Coding rules
 
@@ -95,7 +114,9 @@ persists user drafts and the sample-data toggle to `localStorage`, and exposes t
 
 ### Scope
 
-- Do not add a backend, database, auth, AI API, paid service or secrets.
+- The only backend is the Phase 02 FastAPI service in `backend/` (a mirror of the TS core).
+  Do not add a database, auth, AI API, paid service, secrets or extra endpoints without
+  agreement.
 - Do not add dependencies without checking they are justified; prefer the existing stack.
 - Do not fabricate prices, ratings or specifications.
 
@@ -110,6 +131,14 @@ npm run lint       # eslint ., must exit 0 (warnings should be fixed too)
 npm test           # vitest run, must exit 0
 npm run build      # tsc -b && vite build, must exit 0
 npm run dev        # manual smoke test: app loads, routes and filters work
+```
+
+Backend (run from `backend/` with its `.venv` activated):
+
+```bash
+python -m pytest         # must exit 0
+python -m ruff check .   # must exit 0
+python -m ruff format --check .
 ```
 
 If a check cannot run, say so explicitly. Never claim a check passed when it did not.

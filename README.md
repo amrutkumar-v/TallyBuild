@@ -7,10 +7,14 @@ Estimation of Building Products**. The product vision is a construction-tech wor
 estimators can create project estimates, compare building-product alternatives and run
 what-if scenario analysis on quantities and material prices.
 
-This repository currently contains **Phase 00 (project foundation) and Phase 01 (premium
-UI shell and dashboard)** — a fully client-side React application. There is no backend,
-no database, no authentication and no AI or pricing service yet. Every number shown in the
-interface is **illustrative demo data**, not real customer, market or supplier data.
+This repository currently contains **Phase 00 (project foundation), Phase 01 (premium UI
+shell and dashboard) and Phase 02 (deterministic estimation)**: a React SPA, a pure
+TypeScript estimation core in `src/estimation/`, an API contract in `docs/api-contract.md`
+and a FastAPI service in `backend/` that reproduces the core over HTTP. The frontend is
+still **not wired to the backend** — it runs fully offline. There is no database, no
+authentication and no AI or pricing service yet. Every number shown in the interface and
+returned by the API is **illustrative demo data**, not real customer, market or supplier
+data.
 
 ## Technology stack
 
@@ -22,9 +26,10 @@ interface is **illustrative demo data**, not real customer, market or supplier d
 | Icons      | `lucide-react`                                            |
 | Routing    | `react-router-dom` (client-side routes)                   |
 | Linting    | ESLint 10 + `typescript-eslint` + React Hooks rules       |
+| API (opt.) | FastAPI + Pydantic + uvicorn (Python) in `backend/`       |
 
-No backend, database, authentication, AI API, paid service or deployment configuration is
-included at this stage.
+The FastAPI service is standalone and optional: the SPA does not call it yet. No database,
+authentication, AI API, paid service or deployment configuration is included at this stage.
 
 ## Getting started
 
@@ -54,6 +59,23 @@ The dev server starts at `http://localhost:5173` (Vite prints the exact URL).
 | `npm run build`     | Type-check, then produce an optimized production build    |
 | `npm run preview`   | Serve the production build locally for smoke testing      |
 
+### Backend (optional)
+
+The FastAPI service in `backend/` reproduces the estimation core over HTTP. It is not used
+by the UI yet. See [`backend/README.md`](./backend/README.md) for details.
+
+```bash
+cd backend
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+```
+
+| Command | What it does |
+| ------- | ------------ |
+| `python -m pytest` | Run the backend test suite |
+| `python -m ruff check .` | Lint the backend |
+
 ## Project structure
 
 ```
@@ -71,6 +93,12 @@ src/
   styles/          Global tokens and base styles
   types/           Shared TypeScript types
   utils/           Formatting and small helpers
+
+backend/                    FastAPI estimation service (optional, not wired to the UI)
+  app/
+    routers/       HTTP endpoints (health, products, estimates)
+    estimation/    Python port of the deterministic core
+  tests/           pytest suite
 ```
 
 ## Design system
@@ -99,10 +127,13 @@ tokens instead of hard-coded values. Breakpoints used in media queries: `640px`,
 
 ## Current limitations
 
-- No cost-estimation engine: creating an estimate stores a local draft only.
+- The deterministic estimation core exists (`src/estimation/`) but is **not wired into the
+  UI**: creating an estimate still stores a local draft only.
+- The FastAPI backend (`backend/`) reproduces the core over HTTP but the frontend does not
+  call it yet.
 - Product comparison and what-if analysis are designed placeholders marked
   "coming soon".
-- No backend, persistence server, authentication, live pricing, product datasets or AI
+- No persistence server, authentication, live pricing, product datasets or AI
   recommendations.
 - Data can be cleared at any time by clearing browser site data for `localhost`.
 - Deployment is not configured yet.
@@ -113,7 +144,7 @@ tokens instead of hard-coded values. Breakpoints used in media queries: `640px`,
 | ----- | ---------------------------------------------------------------- | ------------- |
 | 00    | Project foundation, tooling, design tokens, docs                 | Done          |
 | 01    | Premium UI: app shell, dashboard, estimates, placeholder screens | Done          |
-| 02    | FastAPI estimation engine, quantity inputs, AI-assisted estimates | Planned       |
+| 02    | FastAPI estimation engine, quantity inputs, AI-assisted estimates | Partial — core + API done, UI wiring pending |
 | 03    | Product datasets, product comparison, what-if scenario analysis   | Planned       |
 | 04    | Supabase persistence and/or authentication                        | Planned       |
 | 05    | Deployment and demo polish                                        | Planned       |
