@@ -135,11 +135,11 @@ function validateProjectForm(values: NewEstimateFormValues): NewEstimateFormErro
   return errors;
 }
 
-function validateNumber(
+function validateNumber<K extends string>(
   value: string,
   label: string,
-  errors: Record<string, string | undefined>,
-  key: string,
+  errors: Partial<Record<K, string | undefined>>,
+  key: K,
 ): void {
   const trimmed = value.trim();
   if (trimmed === '') {
@@ -263,15 +263,27 @@ export default function NewEstimatePage() {
   const [calculating, setCalculating] = useState(false);
   const [result, setResult] = useState<ResultState>({ kind: 'idle' });
 
-  const checkService = useCallback(async () => {
-    setServiceStatus('checking');
+  const fetchServiceStatus = useCallback(async (): Promise<ServiceStatus> => {
     const health = await getHealth();
-    setServiceStatus(health.ok && health.data.status === 'ok' ? 'online' : 'offline');
+    return health.ok && health.data.status === 'ok' ? 'online' : 'offline';
   }, []);
 
+  const checkService = useCallback(async () => {
+    setServiceStatus('checking');
+    setServiceStatus(await fetchServiceStatus());
+  }, [fetchServiceStatus]);
+
   useEffect(() => {
-    void checkService();
-  }, [checkService]);
+    let cancelled = false;
+    void fetchServiceStatus().then((status) => {
+      if (!cancelled) {
+        setServiceStatus(status);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchServiceStatus]);
 
   const updateValues = (patch: Partial<NewEstimateFormValues>) => {
     setValues((current) => ({ ...current, ...patch }));

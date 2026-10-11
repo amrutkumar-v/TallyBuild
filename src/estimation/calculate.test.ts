@@ -1,17 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { calculateEstimate, validateEstimateRequest } from './calculate';
-import type { ProjectEstimateRequest } from './types';
-
-function baseRequest(overrides: Partial<ProjectEstimateRequest> = {}): ProjectEstimateRequest {
-  return {
-    currency: 'USD',
-    personnel: [],
-    tooling: [],
-    infrastructure: [],
-    other: [],
-    ...overrides,
-  };
-}
 
 describe('calculateEstimate — cost categories', () => {
   it('computes personnel cost as people x hours × rate', () => {
