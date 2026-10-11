@@ -107,19 +107,33 @@ function ResultsWorkspace({ estimate }: { estimate: Estimate }): React.JSX.Eleme
         </p>
       </div>
 
+      <div className={styles.totalHero}>
+        <div className={styles.totalHeroCopy}>
+          <span className={styles.totalHeroLabel}>Likely total — labour cost</span>
+          <span className={styles.totalHeroValue}>{formatCurrency(total, currency)}</span>
+          <span className={styles.totalHeroHint}>
+            {result.effortDays.likely} person-days at{' '}
+            {formatCurrency(result.blendedRatePerDay, currency)} per person-day
+          </span>
+        </div>
+        <div className={styles.totalHeroRange}>
+          <div className={styles.totalHeroRangeItem}>
+            <span className={styles.totalHeroRangeLabel}>Low</span>
+            <span className={styles.totalHeroRangeValue}>{formatCurrency(result.cost.low, currency)}</span>
+          </div>
+          <div className={styles.totalHeroRangeItem}>
+            <span className={styles.totalHeroRangeLabel}>High</span>
+            <span className={styles.totalHeroRangeValue}>{formatCurrency(result.cost.high, currency)}</span>
+          </div>
+        </div>
+      </div>
+
       <div className={styles.summaryGrid}>
         <SummaryCard
           label="Likely effort"
           value={`${result.effortDays.likely} person-days`}
           hint={formatHours(result.effortDays)}
           icon={<Gauge />}
-        />
-        <SummaryCard
-          label="Likely labour cost"
-          value={formatCurrency(result.cost.likely, currency)}
-          hint="Derived from your day rate only"
-          tone="accent"
-          icon={<Coins />}
         />
         <SummaryCard
           label="Indicative duration"
@@ -134,6 +148,13 @@ function ResultsWorkspace({ estimate }: { estimate: Estimate }): React.JSX.Eleme
           hint="Based on how complete the brief is"
           tone={result.confidence === 'high' ? 'success' : result.confidence === 'low' ? 'warning' : 'info'}
           icon={<BarChart3 />}
+        />
+        <SummaryCard
+          label="Blended day rate"
+          value={formatCurrency(result.blendedRatePerDay, currency)}
+          hint="Your input rate"
+          tone="accent"
+          icon={<Coins />}
         />
       </div>
 

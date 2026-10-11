@@ -53,7 +53,7 @@
 }
 
 .danger:hover {
-  background: #9c3030;
+  background: var(--color-danger-strong);
 }
 
 .sm {

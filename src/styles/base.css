@@ -10,6 +10,7 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  background: var(--color-canvas);
 }
 
 body {
@@ -18,8 +19,36 @@ body {
   line-height: var(--leading-normal);
   color: var(--color-ink);
   background: var(--color-canvas);
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border: 3px solid transparent;
+  border-radius: var(--radius-full);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-muted);
+  background-clip: padding-box;
 }
 
 h1,
@@ -91,7 +120,7 @@ table {
 }
 
 ::selection {
-  background: rgba(232, 163, 61, 0.3);
+  background: rgba(190, 242, 100, 0.26);
 }
 
 .visually-hidden {

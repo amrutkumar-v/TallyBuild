@@ -32,7 +32,8 @@
 }
 
 .title {
-  font-size: var(--text-2xl);
+  font-size: clamp(1.5rem, 2.6vw, 1.75rem);
+  letter-spacing: -0.025em;
 }
 
 .description {
