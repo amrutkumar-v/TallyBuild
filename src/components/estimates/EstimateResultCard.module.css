@@ -67,6 +67,12 @@
   color: var(--color-ink-muted);
 }
 
+.chartsSection {
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
 .idleText {
   font-size: var(--text-sm);
   color: var(--color-ink-secondary);

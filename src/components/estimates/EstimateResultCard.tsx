@@ -8,6 +8,7 @@ import { formatCurrency } from '../../utils/format';
 import { Button } from '../ui/Button';
 import { LinkButton } from '../ui/LinkButton';
 import { SectionCard } from '../ui/SectionCard';
+import { CostBreakdownDonutChart, CostLinesBarChart } from '../ui/charts';
 
 import styles from './EstimateResultCard.module.css';
 
@@ -95,6 +96,11 @@ export function EstimateResultCard({ state, onRetry }: EstimateResultCardProps):
       description={`${estimate.projectName} — ${formatCurrency(result.total, result.currency)}`}
     >
       <div role="status">
+        <div className={styles.chartsSection}>
+          <CostBreakdownDonutChart result={result} />
+          <CostLinesBarChart result={result} />
+        </div>
+
         <p className={styles.totalLabel}>Estimated total</p>
         <p className={styles.total}>{formatCurrency(result.total, result.currency)}</p>
         <p className={styles.totalMeta}>

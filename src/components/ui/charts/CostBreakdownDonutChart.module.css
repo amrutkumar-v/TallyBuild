@@ -1,0 +1,209 @@
+.container {
+  width: 100%;
+  min-height: 320px;
+}
+
+.chartWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chartSvg {
+  width: 100%;
+  height: 100%;
+}
+
+.centerContent {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.totalLabel {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  font-weight: var(--weight-regular);
+  margin: 0 0 var(--space-1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.totalValue {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-ink);
+  margin: 0 0 var(--space-1);
+  line-height: var(--leading-tight);
+  font-family: var(--font-mono);
+}
+
+.totalMeta {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  margin: 0;
+  font-weight: var(--weight-regular);
+}
+
+.legendWrapper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: center;
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.legendItem:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-hover);
+}
+
+.legendColor {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.legendLabel {
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+  font-weight: var(--weight-medium);
+}
+
+.legendValue {
+  font-size: var(--text-sm);
+  color: var(--color-ink);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-mono);
+}
+
+.legendPercent {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  font-weight: var(--weight-regular);
+}
+
+.sector {
+  transition: filter var(--transition-base);
+}
+
+.sectorGroup:hover .sector {
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.tooltip {
+  background: var(--color-shell);
+  border: 1px solid;
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  animation: fadeIn 0.2s var(--ease-out);
+}
+
+.tooltipHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.tooltipColor {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.tooltipLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-ink);
+}
+
+.tooltipBody {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.tooltipValue {
+  font-size: var(--text-base);
+  font-weight: var(--weight-bold);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+}
+
+.tooltipPercent {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 280px;
+  text-align: center;
+  color: var(--color-ink-muted);
+  padding: var(--space-6);
+}
+
+.emptyIcon {
+  width: 48px;
+  height: 48px;
+  color: var(--color-border-strong);
+  margin-bottom: var(--space-3);
+}
+
+.emptyText {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  margin: 0 0 var(--space-1);
+  color: var(--color-ink-secondary);
+}
+
+.emptySubtext {
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .centerContent {
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+
+  .totalValue {
+    font-size: var(--text-2xl);
+  }
+
+  .legendWrapper {
+    gap: var(--space-2);
+  }
+
+  .legendItem {
+    padding: var(--space-1) var(--space-3);
+  }
+}
