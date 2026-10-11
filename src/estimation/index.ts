@@ -1,10 +1,26 @@
-export * from './units';
-export * from './money';
-export * from './types';
-export * from './catalogue';
-export * from './calculate';
+export { CURRENCY_DECIMALS, roundCurrency } from './money';
 export {
-  SAMPLE_PRODUCTS,
-  SAMPLE_PRICE_DATE,
-  ILLUSTRATIVE_PRICE_SOURCE_LABEL,
-} from './data/sampleProducts';
+  CURRENCY_LABELS,
+  CURRENCY_OPTIONS,
+  SUPPORTED_CURRENCIES,
+  isSupportedCurrency,
+} from './currencies';
+export type { CurrencyCode } from './currencies';
+export { calculateEstimate, validateEstimateRequest } from './calculate';
+export type {
+  CostSection,
+  CostSectionKey,
+  EstimateCalculation,
+  EstimateErrorCode,
+  EstimateValidationError,
+  InfrastructureLine,
+  InfrastructureResult,
+  OtherCostLine,
+  OtherCostResult,
+  PersonnelLine,
+  PersonnelResult,
+  ProjectEstimateRequest,
+  ProjectEstimateResult,
+  ToolingLine,
+  ToolingResult,
+} from './types';

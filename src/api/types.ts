@@ -1,14 +1,12 @@
 import type {
-  EstimateResult,
   EstimateValidationError,
-  MaterialProduct,
+  ProjectEstimateRequest,
+  ProjectEstimateResult,
 } from '../estimation';
 
 export type ApiErrorCode =
   | 'REQUEST_MALFORMED'
   | 'VALIDATION_ERROR'
-  | 'PRODUCT_NOT_FOUND'
-  | 'ESTIMATE_NOT_FOUND'
   | 'CALCULATION_ERROR'
   | 'INTERNAL_ERROR'
   | 'SERVICE_UNAVAILABLE'
@@ -30,13 +28,8 @@ export interface HealthResponse {
   service: string;
   version: string;
   timestamp: string;
-  catalogue: { products: number; currency: 'INR' };
+  capabilities: { currencies: string[]; categories: string[] };
 }
 
-export interface ProductListResponse {
-  count: number;
-  products: MaterialProduct[];
-}
-
-export type CalculateEstimateRequest = import('../estimation').EstimateRequest;
-export type CalculateEstimateResponse = EstimateResult;
+export type CalculateEstimateRequest = ProjectEstimateRequest;
+export type CalculateEstimateResponse = ProjectEstimateResult;

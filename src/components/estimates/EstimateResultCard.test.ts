@@ -6,46 +6,45 @@ import { MemoryRouter } from 'react-router-dom';
 import { EstimateResultCard } from './EstimateResultCard';
 import type { ResultState } from './EstimateResultCard';
 import type { Estimate } from '../../types';
-import type { EstimateResult, PriceSource } from '../../estimation';
+import type { ProjectEstimateResult } from '../../estimation';
 import { formatCurrency } from '../../utils/format';
-
-const PRICE_SOURCE: PriceSource = {
-  label: 'Illustrative demo data — not a verified market price',
-  priceDate: '2026-09-01',
-  currency: 'INR',
-  isIllustrative: true,
-};
 
 const ESTIMATE: Estimate = {
   id: 'local-test-1',
-  projectName: 'Riverside Villa Extension',
-  location: 'Bengaluru, Karnataka',
-  projectType: 'residential',
+  projectName: 'Atlas Platform Rebuild',
+  scope: 'Re-platform the billing core.',
+  category: 'platform',
+  complexity: 'high',
+  currency: 'INR',
   createdAt: '2026-10-10T00:00:00.000Z',
-  estimatedAmount: 131200,
+  plannedStartDate: '2026-11-01',
+  durationWeeks: 12,
+  estimatedAmount: 385000,
+  actualAmount: null,
   status: 'draft',
   origin: 'local',
 };
 
-const RESULT: EstimateResult = {
-  projectName: 'Riverside Villa Extension',
+const RESULT: ProjectEstimateResult = {
+  projectName: 'Atlas Platform Rebuild',
   currency: 'INR',
-  itemCount: 1,
-  lineResults: [
-    {
-      productId: 'cement-opc-53-grade',
-      productName: 'OPC 53 Grade Cement',
-      category: 'Cement',
-      unit: 'bag',
-      quantity: 320,
-      unitPrice: 410,
-      lineSubtotal: 131200,
-      priceSource: PRICE_SOURCE,
-    },
-  ],
-  subtotal: 131200,
-  total: 131200,
-  priceSources: [PRICE_SOURCE],
+  personnel: {
+    lines: [{ role: 'Senior engineer', people: 2, hours: 100, hourlyRate: 1500, cost: 300000 }],
+    subtotal: 300000,
+  },
+  tooling: { lines: [{ name: 'Design suite', amount: 20000, cost: 20000 }], subtotal: 20000 },
+  infrastructure: {
+    lines: [{ name: 'Cloud hosting', monthlyCost: 5000, months: 6, cost: 30000 }],
+    subtotal: 30000,
+  },
+  other: { lines: [{ description: 'Contingency', amount: 35000, cost: 35000 }], subtotal: 35000 },
+  personnelCost: 300000,
+  toolingCost: 20000,
+  infrastructureCost: 30000,
+  otherCost: 35000,
+  lineCount: 4,
+  total: 385000,
+  assumptions: ['All amounts are calculated in INR.'],
 };
 
 function render(state: ResultState): string {
@@ -59,22 +58,27 @@ function render(state: ResultState): string {
 }
 
 describe('EstimateResultCard', () => {
-  it('renders nothing in the idle state', () => {
-    expect(render({ kind: 'idle' })).toBe('');
+  it('shows an explainer in the idle state', () => {
+    const html = render({ kind: 'idle' });
+    expect(html).toContain('Cost estimate');
+    expect(html).not.toContain('Estimated total');
   });
 
   it('shows a busy status while calculating', () => {
-    expect(render({ kind: 'loading' })).toContain('Calculating your estimate');
+    expect(render({ kind: 'loading' })).toContain('Calculating this estimate');
   });
 
-  it('renders line items, the total and the illustrative price notice on success', () => {
+  it('renders every cost section, the total and assumptions on success', () => {
     const html = render({ kind: 'success', estimate: ESTIMATE, result: RESULT });
 
     expect(html).toContain('Estimated total');
-    expect(html).toContain(formatCurrency(RESULT.total));
-    expect(html).toContain('OPC 53 Grade Cement');
-    expect(html).toContain('Cement');
-    expect(html).toContain('illustrative demo prices');
+    expect(html).toContain(formatCurrency(RESULT.total, 'INR'));
+    expect(html).toContain('Senior engineer');
+    expect(html).toContain('Personnel');
+    expect(html).toContain('Design suite');
+    expect(html).toContain('Cloud hosting');
+    expect(html).toContain('Contingency');
+    expect(html).toContain('Assumptions');
   });
 
   it('renders a transport error with a retry action and no total', () => {
@@ -96,11 +100,11 @@ describe('EstimateResultCard', () => {
   it('renders a validation-error summary without a total', () => {
     const html = render({
       kind: 'validation-error',
-      message: 'Some material lines were rejected.',
+      message: 'Some cost lines were rejected.',
     });
 
     expect(html).toContain('Estimate not calculated');
-    expect(html).toContain('Some material lines were rejected.');
-    expect(html).not.toContain(formatCurrency(131200));
+    expect(html).toContain('Some cost lines were rejected.');
+    expect(html).not.toContain(formatCurrency(385000, 'INR'));
   });
 });

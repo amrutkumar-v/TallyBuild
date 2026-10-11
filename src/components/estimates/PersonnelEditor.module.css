@@ -1,0 +1,32 @@
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.remove {
+  justify-self: start;
+  margin-top: 27px;
+  white-space: nowrap;
+}
+
+.addWrap {
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 767px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  .remove {
+    margin-top: var(--space-1);
+  }
+}

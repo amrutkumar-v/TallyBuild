@@ -1,75 +1,92 @@
-import type { MeasurementUnit } from './units';
+import type { CurrencyCode } from './currencies';
 
-export type CurrencyCode = 'INR';
+export type CostSectionKey = 'personnel' | 'tooling' | 'infrastructure' | 'other';
 
-export interface PriceSource {
-  label: string;
-  priceDate: string;
-  currency: CurrencyCode;
-  isIllustrative: true;
+export interface PersonnelLine {
+  role: string;
+  people: number;
+  hours: number;
+  hourlyRate: number;
 }
 
-export interface MaterialProduct {
-  id: string;
+export interface ToolingLine {
   name: string;
-  category: string;
-  unit: MeasurementUnit;
-  unitPrice: number;
-  priceSource: PriceSource;
+  amount: number;
 }
 
-export interface EstimateLineItem {
-  productId: string;
-  quantity: number;
-  unit?: MeasurementUnit;
-  label?: string;
+export interface InfrastructureLine {
+  name: string;
+  monthlyCost: number;
+  months: number;
 }
 
-export interface EstimateRequest {
-  projectName?: string;
-  lines: EstimateLineItem[];
+export interface OtherCostLine {
+  description: string;
+  amount: number;
 }
 
-export interface LineCalculationResult {
-  productId: string;
-  productName: string;
-  category: string;
-  unit: MeasurementUnit;
-  quantity: number;
-  unitPrice: number;
-  lineSubtotal: number;
-  priceSource: PriceSource;
-  label?: string;
-}
-
-export interface EstimateResult {
+export interface ProjectEstimateRequest {
   projectName?: string;
   currency: CurrencyCode;
-  itemCount: number;
-  lineResults: LineCalculationResult[];
+  personnel: PersonnelLine[];
+  tooling: ToolingLine[];
+  infrastructure: InfrastructureLine[];
+  other: OtherCostLine[];
+}
+
+export interface PersonnelResult extends PersonnelLine {
+  cost: number;
+}
+
+export interface ToolingResult extends ToolingLine {
+  cost: number;
+}
+
+export interface InfrastructureResult extends InfrastructureLine {
+  cost: number;
+}
+
+export interface OtherCostResult extends OtherCostLine {
+  cost: number;
+}
+
+export interface CostSection<T> {
+  lines: T[];
   subtotal: number;
+}
+
+export interface ProjectEstimateResult {
+  projectName?: string;
+  currency: CurrencyCode;
+  personnel: CostSection<PersonnelResult>;
+  tooling: CostSection<ToolingResult>;
+  infrastructure: CostSection<InfrastructureResult>;
+  other: CostSection<OtherCostResult>;
+  personnelCost: number;
+  toolingCost: number;
+  infrastructureCost: number;
+  otherCost: number;
+  lineCount: number;
   total: number;
-  priceSources: PriceSource[];
+  assumptions: string[];
 }
 
 export type EstimateErrorCode =
   | 'EMPTY_REQUEST'
-  | 'MISSING_PRODUCT'
-  | 'INVALID_QUANTITY'
-  | 'INVALID_UNIT'
-  | 'INCOMPATIBLE_UNIT'
-  | 'UNIT_CONVERSION_UNSUPPORTED'
-  | 'INVALID_PRICE'
-  | 'INVALID_PRICE_SOURCE'
+  | 'UNSUPPORTED_CURRENCY'
+  | 'INVALID_PERSONNEL'
+  | 'INVALID_TOOLING'
+  | 'INVALID_INFRASTRUCTURE'
+  | 'INVALID_OTHER'
   | 'NON_FINITE_RESULT';
 
 export interface EstimateValidationError {
   code: EstimateErrorCode;
   message: string;
+  section?: CostSectionKey;
   lineIndex?: number;
-  productId?: string;
 }
 
 export type EstimateCalculation =
-  | { ok: true; result: EstimateResult }
+  | { ok: true; result: ProjectEstimateResult }
   | { ok: false; errors: EstimateValidationError[] };

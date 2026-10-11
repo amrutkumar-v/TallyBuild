@@ -1,28 +1,42 @@
-const currencyFormatter = new Intl.NumberFormat('en-IN', {
-  style: 'currency',
-  currency: 'INR',
-  maximumFractionDigits: 0,
-});
+import type { CurrencyCode } from '../estimation/currencies';
 
-const dateFormatter = new Intl.DateTimeFormat('en-IN', {
+const LOCALES: Record<CurrencyCode, string> = {
+  INR: 'en-IN',
+  USD: 'en-US',
+  EUR: 'en-IE',
+  AED: 'en-AE',
+};
+
+const currencyFormatterCache = new Map<string, Intl.NumberFormat>();
+
+function getCurrencyFormatter(currency: CurrencyCode, compact: boolean): Intl.NumberFormat {
+  const key = `${currency}:${compact ? 'short' : 'long'}`;
+  const cached = currencyFormatterCache.get(key);
+  if (cached) {
+    return cached;
+  }
+  const formatter = new Intl.NumberFormat(LOCALES[currency], {
+    style: 'currency',
+    currency,
+    notation: compact ? 'compact' : 'standard',
+    maximumFractionDigits: compact ? 1 : 0,
+  });
+  currencyFormatterCache.set(key, formatter);
+  return formatter;
+}
+
+const dateFormatter = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
 });
 
-export function formatCurrency(value: number): string {
-  return currencyFormatter.format(value);
+export function formatCurrency(value: number, currency: CurrencyCode = 'INR'): string {
+  return getCurrencyFormatter(currency, false).format(value);
 }
 
-export function formatCurrencyShort(value: number): string {
-  const magnitude = Math.abs(value);
-  if (magnitude >= 10000000) {
-    return `₹${(value / 10000000).toFixed(2)} Cr`;
-  }
-  if (magnitude >= 100000) {
-    return `₹${(value / 100000).toFixed(2)} L`;
-  }
-  return currencyFormatter.format(value);
+export function formatCurrencyShort(value: number, currency: CurrencyCode = 'INR'): string {
+  return getCurrencyFormatter(currency, true).format(value);
 }
 
 export function formatDate(isoDate: string): string {

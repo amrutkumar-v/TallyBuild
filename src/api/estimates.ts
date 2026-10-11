@@ -2,14 +2,14 @@ import { apiRequest } from './client';
 import type { ApiFailure, ApiResult } from './types';
 import type {
   EstimateCalculation,
-  EstimateRequest,
-  EstimateResult,
+  ProjectEstimateRequest,
+  ProjectEstimateResult,
 } from '../estimation';
 
 export function calculateEstimate(
-  request: EstimateRequest,
-): Promise<ApiResult<EstimateResult>> {
-  return apiRequest<EstimateResult>('/estimates/calculate', {
+  request: ProjectEstimateRequest,
+): Promise<ApiResult<ProjectEstimateResult>> {
+  return apiRequest<ProjectEstimateResult>('/estimates/calculate', {
     method: 'POST',
     body: request,
   });
@@ -26,7 +26,7 @@ export class ApiRequestFailure extends Error {
 }
 
 export async function calculateEstimateViaApi(
-  request: EstimateRequest,
+  request: ProjectEstimateRequest,
 ): Promise<EstimateCalculation> {
   const result = await calculateEstimate(request);
   if (result.ok) {

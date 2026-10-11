@@ -61,6 +61,17 @@
   color: var(--color-ink);
 }
 
+.totalMeta {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.idleText {
+  font-size: var(--text-sm);
+  color: var(--color-ink-secondary);
+}
+
 .total + .scroll {
   margin-top: var(--space-4);
 }
@@ -126,6 +137,76 @@
   margin-top: 2px;
   font-size: var(--text-xs);
   color: var(--color-ink-muted);
+}
+
+.lineCell {
+  vertical-align: top;
+}
+
+.lineName {
+  display: block;
+  font-weight: var(--weight-medium);
+  color: var(--color-ink);
+}
+
+.lineMeta {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-muted);
+}
+
+.amountHead {
+  text-align: right;
+}
+
+.sectionRow {
+  background: var(--color-surface-sunken);
+}
+
+.sectionRow th {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-secondary);
+  font-weight: var(--weight-semibold);
+}
+
+.subtotalRow th,
+.subtotalRow td {
+  padding-top: var(--space-2);
+  font-weight: var(--weight-medium);
+  color: var(--color-ink-secondary);
+  border-bottom: none;
+}
+
+.assumptions {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.assumptionsTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-ink);
+}
+
+.assumptionsList {
+  margin-top: var(--space-2);
+  padding-left: var(--space-5);
+  list-style: disc;
+  font-size: var(--text-sm);
+  color: var(--color-ink-secondary);
+}
+
+.assumptionsList li + li {
+  margin-top: var(--space-1);
 }
 
 .saved {

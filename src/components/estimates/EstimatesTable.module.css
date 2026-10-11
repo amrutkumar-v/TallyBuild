@@ -71,6 +71,17 @@
   color: var(--color-ink-muted);
 }
 
+.dateCell {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.dateCell svg {
+  flex-shrink: 0;
+  color: var(--color-ink-muted);
+}
+
 @media (max-width: 767px) {
   .table,
   .table tbody,

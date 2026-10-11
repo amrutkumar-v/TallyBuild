@@ -1,10 +1,11 @@
-import { MapPin } from 'lucide-react';
+import { CalendarClock } from 'lucide-react';
 
 import { Badge } from '../ui/Badge';
 import {
   ESTIMATE_STATUS_LABELS,
   ESTIMATE_STATUS_TONES,
-  PROJECT_TYPE_LABELS,
+  PROJECT_CATEGORY_LABELS,
+  PROJECT_COMPLEXITY_LABELS,
 } from '../../constants/labels';
 import { formatCurrency, formatDate } from '../../utils/format';
 import type { Estimate } from '../../types';
@@ -12,61 +13,70 @@ import type { Estimate } from '../../types';
 import styles from './EstimatesTable.module.css';
 
 interface EstimatesTableProps {
-  estimates: Estimate[];
+  estimates: ReadonlyArray<Estimate>;
 }
 
 export function EstimatesTable({ estimates }: EstimatesTableProps) {
   return (
-    <table className={styles.table} role="table">
+    <table className={styles.table}>
       <caption className="visually-hidden">
-        Estimates with project, type, creation date, estimated amount and status
+        Project estimates with category, complexity, planned start, estimated and actual
+        amounts, and status
       </caption>
-      <thead role="rowgroup">
-        <tr role="row">
-          <th scope="col" role="columnheader">
-            Project
+      <thead>
+        <tr>
+          <th scope="col">Project</th>
+          <th scope="col">Category</th>
+          <th scope="col">Complexity</th>
+          <th scope="col">Planned start</th>
+          <th scope="col" className={styles.numeric}>
+            Estimated
           </th>
-          <th scope="col" role="columnheader">
-            Type
+          <th scope="col" className={styles.numeric}>
+            Actual
           </th>
-          <th scope="col" role="columnheader">
-            Created
-          </th>
-          <th scope="col" role="columnheader" className={styles.numeric}>
-            Estimated amount
-          </th>
-          <th scope="col" role="columnheader">
-            Status
-          </th>
+          <th scope="col">Status</th>
         </tr>
       </thead>
-      <tbody role="rowgroup">
+      <tbody>
         {estimates.map((estimate) => (
-          <tr key={estimate.id} role="row">
-            <th scope="row" role="rowheader" data-label="Project" className={styles.projectCell}>
+          <tr key={estimate.id}>
+            <th scope="row" data-label="Project" className={styles.projectCell}>
               <span className={styles.projectName}>{estimate.projectName}</span>
               <span className={styles.projectMeta}>
-                <MapPin size={13} aria-hidden="true" />
-                {estimate.location}
+                {estimate.scope}
                 {estimate.origin === 'local' ? (
                   <span className={styles.localTag}>Local draft</span>
                 ) : null}
               </span>
             </th>
-            <td role="cell" data-label="Type">
-              {PROJECT_TYPE_LABELS[estimate.projectType]}
+            <td data-label="Category">{PROJECT_CATEGORY_LABELS[estimate.category]}</td>
+            <td data-label="Complexity">{PROJECT_COMPLEXITY_LABELS[estimate.complexity]}</td>
+            <td data-label="Planned start">
+              {estimate.plannedStartDate === null ? (
+                <span className={styles.pending}>Not planned</span>
+              ) : (
+                <span className={styles.dateCell}>
+                  <CalendarClock size={13} aria-hidden="true" />
+                  {formatDate(estimate.plannedStartDate)}
+                </span>
+              )}
             </td>
-            <td role="cell" data-label="Created">
-              {formatDate(estimate.createdAt)}
-            </td>
-            <td role="cell" data-label="Estimated amount" className={styles.numeric}>
+            <td data-label="Estimated" className={styles.numeric}>
               {estimate.estimatedAmount === null ? (
                 <span className={styles.pending}>Not estimated</span>
               ) : (
-                formatCurrency(estimate.estimatedAmount)
+                formatCurrency(estimate.estimatedAmount, estimate.currency)
               )}
             </td>
-            <td role="cell" data-label="Status">
+            <td data-label="Actual" className={styles.numeric}>
+              {estimate.actualAmount === null ? (
+                <span className={styles.pending}>Not recorded</span>
+              ) : (
+                formatCurrency(estimate.actualAmount, estimate.currency)
+              )}
+            </td>
+            <td data-label="Status">
               <Badge tone={ESTIMATE_STATUS_TONES[estimate.status]}>
                 {ESTIMATE_STATUS_LABELS[estimate.status]}
               </Badge>

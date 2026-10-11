@@ -1,13 +1,11 @@
-import { AlertTriangle, CheckCircle2, Loader2, Wallet } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Loader2 } from 'lucide-react';
 import type { ReactElement } from 'react';
 
-import { getUnitLabel } from '../../estimation';
-import type { EstimateResult } from '../../estimation';
 import type { ApiFailure } from '../../api';
-import { formatCurrency, formatDate } from '../../utils/format';
+import type { ProjectEstimateResult } from '../../estimation';
 import type { Estimate } from '../../types';
+import { formatCurrency } from '../../utils/format';
 import { Button } from '../ui/Button';
-import { DemoNotice } from '../ui/DemoNotice';
 import { LinkButton } from '../ui/LinkButton';
 import { SectionCard } from '../ui/SectionCard';
 
@@ -16,7 +14,7 @@ import styles from './EstimateResultCard.module.css';
 export type ResultState =
   | { kind: 'idle' }
   | { kind: 'loading' }
-  | { kind: 'success'; estimate: Estimate; result: EstimateResult }
+  | { kind: 'success'; estimate: Estimate; result: ProjectEstimateResult }
   | { kind: 'validation-error'; message: string }
   | { kind: 'error'; error: ApiFailure };
 
@@ -25,43 +23,19 @@ interface EstimateResultCardProps {
   onRetry: () => void;
 }
 
-const quantityFormatter = new Intl.NumberFormat('en-IN', {
-  maximumFractionDigits: 2,
-});
+const numberFormatter = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 2 });
 
-function formatQuantity(value: number): string {
-  return quantityFormatter.format(value);
+function formatNumber(value: number): string {
+  return numberFormatter.format(value);
 }
 
-function PriceSourceNotice({ result }: { result: EstimateResult }): ReactElement {
-  const sources = result.priceSources.map(
-    (source) => `${source.label} (dated ${formatDate(source.priceDate)})`,
-  );
-  const list =
-    sources.length > 0 ? sources.join(' and ') : 'the service price catalogue';
-
-  return (
-    <DemoNotice>
-      Prices in this estimate come from {list}. These are illustrative demo prices for the
-      hackathon build, not verified market or supplier rates.
-    </DemoNotice>
-  );
-}
-
-export function EstimateResultCard({
-  state,
-  onRetry,
-}: EstimateResultCardProps): ReactElement | null {
-  if (state.kind === 'idle') {
-    return null;
-  }
-
+export function EstimateResultCard({ state, onRetry }: EstimateResultCardProps): ReactElement {
   if (state.kind === 'loading') {
     return (
       <SectionCard title="Cost estimate">
         <div className={styles.busy} role="status">
-          <Loader2 size={18} className={styles.spinner} aria-hidden="true" />
-          <span>Calculating your estimate…</span>
+          <Loader2 className={styles.spinner} size={18} aria-hidden="true" />
+          <span>Calculating this estimate…</span>
         </div>
       </SectionCard>
     );
@@ -71,7 +45,7 @@ export function EstimateResultCard({
     return (
       <SectionCard title="Estimate not calculated">
         <div className={styles.errorBlock} role="alert">
-          <AlertTriangle size={18} className={styles.errorIcon} aria-hidden="true" />
+          <AlertTriangle className={styles.errorIcon} size={18} aria-hidden="true" />
           <div>
             <p className={styles.errorTitle}>The estimation service rejected some values.</p>
             <p className={styles.errorText}>{state.message}</p>
@@ -88,7 +62,7 @@ export function EstimateResultCard({
     return (
       <SectionCard title="Estimate not calculated">
         <div className={styles.errorBlock} role="alert">
-          <AlertTriangle size={18} className={styles.errorIcon} aria-hidden="true" />
+          <AlertTriangle className={styles.errorIcon} size={18} aria-hidden="true" />
           <div>
             <p className={styles.errorTitle}>We couldn&rsquo;t calculate this estimate.</p>
             <p className={styles.errorText}>{state.error.message}</p>
@@ -103,63 +77,122 @@ export function EstimateResultCard({
     );
   }
 
+  if (state.kind === 'idle') {
+    return (
+      <SectionCard title="Cost estimate">
+        <p className={styles.idleText}>
+          Add cost lines and choose a currency, then calculate to see the estimated total here.
+        </p>
+      </SectionCard>
+    );
+  }
+
   const { estimate, result } = state;
 
   return (
     <SectionCard
       title="Cost estimate"
-      description={`${estimate.projectName} — ${formatCurrency(result.total)}`}
+      description={`${estimate.projectName} — ${formatCurrency(result.total, result.currency)}`}
     >
       <div role="status">
         <p className={styles.totalLabel}>Estimated total</p>
-        <p className={styles.total}>{formatCurrency(result.total)}</p>
+        <p className={styles.total}>{formatCurrency(result.total, result.currency)}</p>
+        <p className={styles.totalMeta}>
+          {result.lineCount} {result.lineCount === 1 ? 'cost line' : 'cost lines'} in{' '}
+          {result.currency}. This is a transparent arithmetic total, not a prediction.
+        </p>
 
         <div className={styles.scroll}>
           <table className={styles.table}>
             <caption className="visually-hidden">
-              Material line items and cost totals
+              Cost lines grouped by category with subtotals and an estimated total
             </caption>
             <thead>
               <tr>
-                <th scope="col">Product</th>
-                <th scope="col">Quantity</th>
-                <th scope="col">Unit price</th>
-                <th scope="col">Line total</th>
+                <th scope="col">Cost line</th>
+                <th scope="col">Details</th>
+                <th scope="col" className={styles.amountHead}>
+                  Amount
+                </th>
               </tr>
             </thead>
             <tbody>
-              {result.lineResults.map((line, index) => (
-                <tr key={`${line.productId}-${index}`}>
-                  <td>
-                    <span className={styles.productName}>{line.productName}</span>
-                    <span className={styles.productMeta}>{line.category}</span>
+              {result.personnel.lines.map((line, index) => (
+                <tr key={`personnel-${index}`}>
+                  <td className={styles.lineCell}>
+                    <span className={styles.lineName}>{line.role}</span>
+                    <span className={styles.lineMeta}>Personnel</span>
                   </td>
                   <td>
-                    {formatQuantity(line.quantity)} {getUnitLabel(line.unit)}
+                    {formatNumber(line.people)} people × {formatNumber(line.hours)} h ×{' '}
+                    {formatCurrency(line.hourlyRate, result.currency)}
                   </td>
-                  <td>{formatCurrency(line.unitPrice)}</td>
-                  <td className={styles.amount}>{formatCurrency(line.lineSubtotal)}</td>
+                  <td className={styles.amount}>
+                    {formatCurrency(line.cost, result.currency)}
+                  </td>
+                </tr>
+              ))}
+              {result.tooling.lines.map((line, index) => (
+                <tr key={`tooling-${index}`}>
+                  <td className={styles.lineCell}>
+                    <span className={styles.lineName}>{line.name}</span>
+                    <span className={styles.lineMeta}>Tooling</span>
+                  </td>
+                  <td>One-off cost</td>
+                  <td className={styles.amount}>
+                    {formatCurrency(line.cost, result.currency)}
+                  </td>
+                </tr>
+              ))}
+              {result.infrastructure.lines.map((line, index) => (
+                <tr key={`infrastructure-${index}`}>
+                  <td className={styles.lineCell}>
+                    <span className={styles.lineName}>{line.name}</span>
+                    <span className={styles.lineMeta}>Infrastructure</span>
+                  </td>
+                  <td>
+                    {formatCurrency(line.monthlyCost, result.currency)} / month ×{' '}
+                    {formatNumber(line.months)} months
+                  </td>
+                  <td className={styles.amount}>
+                    {formatCurrency(line.cost, result.currency)}
+                  </td>
+                </tr>
+              ))}
+              {result.other.lines.map((line, index) => (
+                <tr key={`other-${index}`}>
+                  <td className={styles.lineCell}>
+                    <span className={styles.lineName}>{line.description}</span>
+                    <span className={styles.lineMeta}>Other</span>
+                  </td>
+                  <td>One-off cost</td>
+                  <td className={styles.amount}>
+                    {formatCurrency(line.cost, result.currency)}
+                  </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr>
-                <th scope="row" colSpan={3}>
-                  Subtotal
-                </th>
-                <td>{formatCurrency(result.subtotal)}</td>
-              </tr>
-              <tr>
-                <th scope="row" colSpan={3} className={styles.totalHeader}>
+                <th scope="row" colSpan={2}>
                   Estimated total
                 </th>
-                <td className={styles.totalCell}>{formatCurrency(result.total)}</td>
+                <td className={styles.totalCell}>
+                  {formatCurrency(result.total, result.currency)}
+                </td>
               </tr>
             </tfoot>
           </table>
         </div>
 
-        <PriceSourceNotice result={result} />
+        <div className={styles.assumptions}>
+          <h3 className={styles.assumptionsTitle}>Assumptions</h3>
+          <ul className={styles.assumptionsList}>
+            {result.assumptions.map((assumption) => (
+              <li key={assumption}>{assumption}</li>
+            ))}
+          </ul>
+        </div>
 
         <p className={styles.saved}>
           <CheckCircle2 size={16} aria-hidden="true" />
@@ -167,7 +200,7 @@ export function EstimateResultCard({
           total.
         </p>
         <div className={styles.savedActions}>
-          <LinkButton to="/estimates" iconStart={<Wallet size={16} aria-hidden="true" />}>
+          <LinkButton to="/estimates" iconStart={<CheckCircle2 size={16} aria-hidden="true" />}>
             View estimates
           </LinkButton>
         </div>

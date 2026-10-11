@@ -24,16 +24,25 @@ describe('NewEstimatePage — initial render', () => {
   it('renders the required project fields', () => {
     const html = render();
     expect(html).toContain('Project name');
-    expect(html).toContain('Location');
-    expect(html).toContain('Project type');
-    expect(html).toContain('Scope notes');
+    expect(html).toContain('Scope');
+    expect(html).toContain('Category');
+    expect(html).toContain('Complexity');
+    expect(html).toContain('Currency');
   });
 
-  it('shows the catalogue loading state before the service responds', () => {
-    expect(render()).toContain('Loading the product catalogue');
+  it('renders the cost-line editors', () => {
+    const html = render();
+    expect(html).toContain('Personnel');
+    expect(html).toContain('Tooling');
+    expect(html).toContain('Infrastructure');
+    expect(html).toContain('Other costs');
   });
 
-  it('disables calculation and fabricates no total while the catalogue loads', () => {
+  it('shows the service-check state before the health probe resolves', () => {
+    expect(render()).toContain('Checking the estimation service');
+  });
+
+  it('disables calculation and fabricates no total while the service is unchecked', () => {
     const html = render();
     expect(html).toContain('Calculate estimate');
     expect(html).toContain('disabled');

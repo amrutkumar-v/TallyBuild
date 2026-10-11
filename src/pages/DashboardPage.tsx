@@ -17,7 +17,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="Overview"
         title="Welcome to TallyBuild AI"
-        description="Create building-product cost estimates, then compare alternatives and test what-if scenarios — all in one workspace."
+        description="Create project cost estimates, then compare scenarios and test what-if changes — all in one workspace."
         actions={
           <LinkButton to="/new-estimate" iconStart={<Plus size={16} aria-hidden="true" />}>
             New Estimate

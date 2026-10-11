@@ -39,7 +39,7 @@ export function EstimatesToolbar({
           label="Search estimates"
           value={query}
           onChange={onQueryChange}
-          placeholder="Search by project, location or type"
+          placeholder="Search by project, category or scope"
         />
         <FilterChips
           legend="Filter estimates by status"

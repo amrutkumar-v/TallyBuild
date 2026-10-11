@@ -1,4 +1,4 @@
-import { ArrowRight, IndianRupee, Package, SlidersHorizontal } from 'lucide-react';
+import { ArrowRight, CalendarClock, Coins, SlidersHorizontal, Users } from 'lucide-react';
 
 import { Badge } from '../components/ui/Badge';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -8,16 +8,22 @@ import styles from './WhatIfPage.module.css';
 
 const SCENARIOS = [
   {
-    icon: Package,
-    title: 'Quantity scenarios',
+    icon: Users,
+    title: 'Team scenarios',
     description:
-      'Change line-item quantities — for example a 10% material buffer — and see how the estimate responds.',
+      'Change team size or hours — for example a 20% effort buffer — and see how the estimate responds.',
   },
   {
-    icon: IndianRupee,
-    title: 'Material price scenarios',
+    icon: Coins,
+    title: 'Rate scenarios',
     description:
-      'Stress-test the budget against supplier price shifts before you lock in a product choice.',
+      'Stress-test the budget against hourly rate or monthly infrastructure cost shifts before you commit.',
+  },
+  {
+    icon: CalendarClock,
+    title: 'Duration scenarios',
+    description:
+      'Adjust the number of months of infrastructure or the project length and watch the total move.',
   },
   {
     icon: SlidersHorizontal,
@@ -28,8 +34,8 @@ const SCENARIOS = [
 ];
 
 const FLOW = [
-  { label: 'Your inputs', note: 'Quantities and material choices' },
-  { label: 'Estimation engine', note: 'Arrives in Phase 02' },
+  { label: 'Your inputs', note: 'Cost lines, currency and timing' },
+  { label: 'Estimation service', note: 'Available now' },
   { label: 'Scenario outcomes', note: 'Planned for Phase 03' },
 ];
 
@@ -39,7 +45,7 @@ export default function WhatIfPage() {
       <PageHeader
         eyebrow="Phase 03 preview"
         title="What-if Analysis"
-        description="Explore how quantity and material-price changes ripple through a building-product estimate."
+        description="Explore how team, rate and duration changes ripple through a project cost estimate."
         actions={<Badge tone="accent">Coming soon</Badge>}
       />
 
@@ -76,13 +82,10 @@ export default function WhatIfPage() {
         </div>
       </SectionCard>
 
-      <SectionCard
-        title="Honest status"
-        description="No scenario calculations run yet."
-      >
+      <SectionCard title="Honest status" description="No scenario calculations run yet.">
         <p className={styles.note}>
-          Scenario inputs and results stay disabled until the estimation engine (Phase 02) and the
-          what-if tooling (Phase 03) are built, so no numbers here are invented.
+          Scenario inputs and results stay disabled until the what-if tooling (Phase 03) is built,
+          so no numbers here are invented.
         </p>
       </SectionCard>
     </>

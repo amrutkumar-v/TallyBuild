@@ -10,21 +10,21 @@ const STEPS = [
     phase: 'Available now',
     title: 'Capture the project',
     description:
-      'Record the project name, location and type so every estimate stays organised from the first draft.',
+      'Record the project name, scope, category and complexity so every estimate stays organised from the first draft.',
   },
   {
     icon: Calculator,
-    phase: 'Phase 02',
-    title: 'Estimate product costs',
+    phase: 'Available now',
+    title: 'Total the cost lines',
     description:
-      'The estimation engine will turn quantities and material choices into transparent building-product cost estimates.',
+      'Add personnel, tooling, infrastructure and other costs and let the estimation service total them transparently in one currency.',
   },
   {
     icon: Scale,
     phase: 'Phase 03',
     title: 'Compare and stress-test',
     description:
-      'Compare product alternatives and run what-if scenarios on quantities and material prices before committing.',
+      'Compare project scenarios and run what-if analysis on rates and durations before committing.',
   },
 ];
 
@@ -32,7 +32,7 @@ export function HowItHelps() {
   return (
     <SectionCard
       title="How TallyBuild AI helps"
-      description="A construction-tech workspace for KLE TECH HACKFEST 2026, Domain 4C — AI for cost estimation of building products."
+      description="A project cost-estimation workspace for KLE TECH HACKFEST 2026, Domain 4C — AI for cost estimation of building products."
     >
       <ol className={styles.steps}>
         {STEPS.map((step) => (

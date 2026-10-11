@@ -1,226 +1,286 @@
-import { SAMPLE_PRODUCT_CATALOGUE, findProduct } from './catalogue';
-import type { ProductCatalogue } from './catalogue';
+import { SUPPORTED_CURRENCIES, isSupportedCurrency } from './currencies';
+import type { CurrencyCode } from './currencies';
 import { roundCurrency } from './money';
-import { areUnitsCompatible, isSupportedUnit } from './units';
 import type {
   EstimateCalculation,
-  EstimateLineItem,
-  EstimateRequest,
-  EstimateResult,
   EstimateValidationError,
-  LineCalculationResult,
-  PriceSource,
+  InfrastructureResult,
+  OtherCostResult,
+  PersonnelResult,
+  ProjectEstimateRequest,
+  ProjectEstimateResult,
+  ToolingResult,
 } from './types';
 
-function isValidPriceSource(value: unknown): value is PriceSource {
-  if (typeof value !== 'object' || value === null) {
-    return false;
-  }
-  const source = value as Partial<PriceSource>;
-  return (
-    typeof source.label === 'string' &&
-    source.label.trim() !== '' &&
-    typeof source.priceDate === 'string' &&
-    source.priceDate.trim() !== '' &&
-    source.currency === 'INR' &&
-    source.isIllustrative === true
-  );
+function isFiniteNonNegative(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
-function validateLine(
-  line: EstimateLineItem,
-  index: number,
-  catalogue: ProductCatalogue,
+function isNonEmptyText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim() !== '';
+}
+
+function buildAssumptions(currency: CurrencyCode): string[] {
+  return [
+    `All amounts are calculated in ${currency}. Live currency conversion is not configured, so each estimate stays in the currency you choose.`,
+    'Personnel cost = people × hours × hourly rate per team line.',
+    'Infrastructure cost = monthly cost × months per resource line.',
+    'Excludes taxes, duties and contingency unless you add them as an "other" cost line.',
+  ];
+}
+
+export function validateEstimateRequest(
+  request: ProjectEstimateRequest,
 ): EstimateValidationError[] {
   const errors: EstimateValidationError[] = [];
-  const lineNumber = index + 1;
-  const product = findProduct(catalogue, line.productId);
 
-  if (!product) {
+  if (!isSupportedCurrency(request.currency)) {
     errors.push({
-      code: 'MISSING_PRODUCT',
-      message: `Line ${lineNumber}: product "${line.productId}" is not in the catalogue.`,
-      lineIndex: index,
-      productId: line.productId,
+      code: 'UNSUPPORTED_CURRENCY',
+      message: `Currency "${String(
+        request.currency,
+      )}" is not supported. Choose one of ${SUPPORTED_CURRENCIES.join(', ')}.`,
+    });
+  }
+
+  const personnel = Array.isArray(request.personnel) ? request.personnel : [];
+  const tooling = Array.isArray(request.tooling) ? request.tooling : [];
+  const infrastructure = Array.isArray(request.infrastructure) ? request.infrastructure : [];
+  const other = Array.isArray(request.other) ? request.other : [];
+
+  if (
+    personnel.length === 0 &&
+    tooling.length === 0 &&
+    infrastructure.length === 0 &&
+    other.length === 0
+  ) {
+    errors.push({
+      code: 'EMPTY_REQUEST',
+      message:
+        'Add at least one cost line (personnel, tooling, infrastructure or other) to calculate an estimate.',
     });
     return errors;
   }
 
-  if (typeof line.quantity !== 'number' || !Number.isFinite(line.quantity)) {
-    errors.push({
-      code: 'INVALID_QUANTITY',
-      message: `Line ${lineNumber}: quantity must be a finite number.`,
-      lineIndex: index,
-      productId: product.id,
-    });
-  } else if (line.quantity < 0) {
-    errors.push({
-      code: 'INVALID_QUANTITY',
-      message: `Line ${lineNumber}: quantity must not be negative.`,
-      lineIndex: index,
-      productId: product.id,
-    });
-  }
-
-  if (line.unit !== undefined) {
-    if (!isSupportedUnit(line.unit)) {
+  personnel.forEach((line, index) => {
+    const lineNumber = index + 1;
+    if (!isNonEmptyText(line.role)) {
       errors.push({
-        code: 'INVALID_UNIT',
-        message: `Line ${lineNumber}: unit "${String(line.unit)}" is not supported.`,
+        code: 'INVALID_PERSONNEL',
+        message: `Personnel line ${lineNumber}: role is required.`,
+        section: 'personnel',
         lineIndex: index,
-        productId: product.id,
       });
-    } else if (line.unit !== product.unit) {
-      if (areUnitsCompatible(line.unit, product.unit)) {
-        errors.push({
-          code: 'UNIT_CONVERSION_UNSUPPORTED',
-          message: `Line ${lineNumber}: unit "${line.unit}" is compatible with "${product.unit}" but unit conversion is not supported yet.`,
-          lineIndex: index,
-          productId: product.id,
-        });
-      } else {
-        errors.push({
-          code: 'INCOMPATIBLE_UNIT',
-          message: `Line ${lineNumber}: unit "${line.unit}" is incompatible with "${product.unit}".`,
-          lineIndex: index,
-          productId: product.id,
-        });
-      }
     }
-  }
-
-  if (
-    typeof product.unitPrice !== 'number' ||
-    !Number.isFinite(product.unitPrice) ||
-    product.unitPrice <= 0
-  ) {
-    errors.push({
-      code: 'INVALID_PRICE',
-      message: `Line ${lineNumber}: product "${product.id}" has an invalid unit price.`,
-      lineIndex: index,
-      productId: product.id,
-    });
-  }
-
-  if (!isValidPriceSource(product.priceSource)) {
-    errors.push({
-      code: 'INVALID_PRICE_SOURCE',
-      message: `Line ${lineNumber}: product "${product.id}" is missing price source metadata.`,
-      lineIndex: index,
-      productId: product.id,
-    });
-  }
-
-  return errors;
-}
-
-function collectPriceSources(lineResults: LineCalculationResult[]): PriceSource[] {
-  const sources: PriceSource[] = [];
-  for (const line of lineResults) {
-    const exists = sources.some(
-      (source) =>
-        source.label === line.priceSource.label &&
-        source.priceDate === line.priceSource.priceDate &&
-        source.currency === line.priceSource.currency,
-    );
-    if (!exists) {
-      sources.push(line.priceSource);
+    if (!isFiniteNonNegative(line.people)) {
+      errors.push({
+        code: 'INVALID_PERSONNEL',
+        message: `Personnel line ${lineNumber}: number of people must be a finite number that is 0 or more.`,
+        section: 'personnel',
+        lineIndex: index,
+      });
     }
-  }
-  return sources;
-}
-
-export function validateEstimateRequest(
-  request: EstimateRequest,
-  catalogue: ProductCatalogue = SAMPLE_PRODUCT_CATALOGUE,
-): EstimateValidationError[] {
-  const lines = Array.isArray(request.lines) ? request.lines : [];
-  if (lines.length === 0) {
-    return [
-      {
-        code: 'EMPTY_REQUEST',
-        message: 'Add at least one line item to calculate an estimate.',
-      },
-    ];
-  }
-
-  const errors: EstimateValidationError[] = [];
-  lines.forEach((line, index) => {
-    errors.push(...validateLine(line, index, catalogue));
+    if (!isFiniteNonNegative(line.hours)) {
+      errors.push({
+        code: 'INVALID_PERSONNEL',
+        message: `Personnel line ${lineNumber}: hours must be a finite number that is 0 or more.`,
+        section: 'personnel',
+        lineIndex: index,
+      });
+    }
+    if (!isFiniteNonNegative(line.hourlyRate)) {
+      errors.push({
+        code: 'INVALID_PERSONNEL',
+        message: `Personnel line ${lineNumber}: hourly rate must be a finite number that is 0 or more.`,
+        section: 'personnel',
+        lineIndex: index,
+      });
+    }
   });
+
+  tooling.forEach((line, index) => {
+    const lineNumber = index + 1;
+    if (!isNonEmptyText(line.name)) {
+      errors.push({
+        code: 'INVALID_TOOLING',
+        message: `Tooling line ${lineNumber}: name is required.`,
+        section: 'tooling',
+        lineIndex: index,
+      });
+    }
+    if (!isFiniteNonNegative(line.amount)) {
+      errors.push({
+        code: 'INVALID_TOOLING',
+        message: `Tooling line ${lineNumber}: cost must be a finite number that is 0 or more.`,
+        section: 'tooling',
+        lineIndex: index,
+      });
+    }
+  });
+
+  infrastructure.forEach((line, index) => {
+    const lineNumber = index + 1;
+    if (!isNonEmptyText(line.name)) {
+      errors.push({
+        code: 'INVALID_INFRASTRUCTURE',
+        message: `Infrastructure line ${lineNumber}: name is required.`,
+        section: 'infrastructure',
+        lineIndex: index,
+      });
+    }
+    if (!isFiniteNonNegative(line.monthlyCost)) {
+      errors.push({
+        code: 'INVALID_INFRASTRUCTURE',
+        message: `Infrastructure line ${lineNumber}: monthly cost must be a finite number that is 0 or more.`,
+        section: 'infrastructure',
+        lineIndex: index,
+      });
+    }
+    if (!isFiniteNonNegative(line.months)) {
+      errors.push({
+        code: 'INVALID_INFRASTRUCTURE',
+        message: `Infrastructure line ${lineNumber}: months must be a finite number that is 0 or more.`,
+        section: 'infrastructure',
+        lineIndex: index,
+      });
+    }
+  });
+
+  other.forEach((line, index) => {
+    const lineNumber = index + 1;
+    if (!isNonEmptyText(line.description)) {
+      errors.push({
+        code: 'INVALID_OTHER',
+        message: `Other cost line ${lineNumber}: description is required.`,
+        section: 'other',
+        lineIndex: index,
+      });
+    }
+    if (!isFiniteNonNegative(line.amount)) {
+      errors.push({
+        code: 'INVALID_OTHER',
+        message: `Other cost line ${lineNumber}: cost must be a finite number that is 0 or more.`,
+        section: 'other',
+        lineIndex: index,
+      });
+    }
+  });
+
   return errors;
 }
 
-export function calculateEstimate(
-  request: EstimateRequest,
-  catalogue: ProductCatalogue = SAMPLE_PRODUCT_CATALOGUE,
-): EstimateCalculation {
-  const errors = validateEstimateRequest(request, catalogue);
+export function calculateEstimate(request: ProjectEstimateRequest): EstimateCalculation {
+  const errors = validateEstimateRequest(request);
   if (errors.length > 0) {
     return { ok: false, errors };
   }
 
-  const lineResults: LineCalculationResult[] = [];
   const resultErrors: EstimateValidationError[] = [];
 
-  request.lines.forEach((line, index) => {
-    const product = findProduct(catalogue, line.productId);
-    if (!product) {
-      resultErrors.push({
-        code: 'MISSING_PRODUCT',
-        message: `Line ${index + 1}: product "${line.productId}" is not in the catalogue.`,
-        lineIndex: index,
-        productId: line.productId,
-      });
-      return;
-    }
-
-    const lineSubtotal = roundCurrency(line.quantity * product.unitPrice);
-    if (!Number.isFinite(lineSubtotal)) {
+  const personnelResults: PersonnelResult[] = [];
+  request.personnel.forEach((line, index) => {
+    const cost = roundCurrency(line.people * line.hours * line.hourlyRate);
+    if (!Number.isFinite(cost)) {
       resultErrors.push({
         code: 'NON_FINITE_RESULT',
-        message: `Line ${index + 1}: subtotal is not a finite number.`,
+        message: `Personnel line ${index + 1}: cost is not a finite number.`,
+        section: 'personnel',
         lineIndex: index,
-        productId: product.id,
       });
       return;
     }
+    personnelResults.push({ ...line, cost });
+  });
 
-    lineResults.push({
-      productId: product.id,
-      productName: product.name,
-      category: product.category,
-      unit: line.unit ?? product.unit,
-      quantity: line.quantity,
-      unitPrice: product.unitPrice,
-      lineSubtotal,
-      priceSource: product.priceSource,
-      label: line.label,
-    });
+  const toolingResults: ToolingResult[] = [];
+  request.tooling.forEach((line, index) => {
+    const cost = roundCurrency(line.amount);
+    if (!Number.isFinite(cost)) {
+      resultErrors.push({
+        code: 'NON_FINITE_RESULT',
+        message: `Tooling line ${index + 1}: cost is not a finite number.`,
+        section: 'tooling',
+        lineIndex: index,
+      });
+      return;
+    }
+    toolingResults.push({ ...line, cost });
+  });
+
+  const infrastructureResults: InfrastructureResult[] = [];
+  request.infrastructure.forEach((line, index) => {
+    const cost = roundCurrency(line.monthlyCost * line.months);
+    if (!Number.isFinite(cost)) {
+      resultErrors.push({
+        code: 'NON_FINITE_RESULT',
+        message: `Infrastructure line ${index + 1}: cost is not a finite number.`,
+        section: 'infrastructure',
+        lineIndex: index,
+      });
+      return;
+    }
+    infrastructureResults.push({ ...line, cost });
+  });
+
+  const otherResults: OtherCostResult[] = [];
+  request.other.forEach((line, index) => {
+    const cost = roundCurrency(line.amount);
+    if (!Number.isFinite(cost)) {
+      resultErrors.push({
+        code: 'NON_FINITE_RESULT',
+        message: `Other cost line ${index + 1}: cost is not a finite number.`,
+        section: 'other',
+        lineIndex: index,
+      });
+      return;
+    }
+    otherResults.push({ ...line, cost });
   });
 
   if (resultErrors.length > 0) {
     return { ok: false, errors: resultErrors };
   }
 
-  const subtotal = roundCurrency(
-    lineResults.reduce((sum, line) => sum + line.lineSubtotal, 0),
+  const personnelCost = roundCurrency(
+    personnelResults.reduce((sum, line) => sum + line.cost, 0),
   );
-  if (!Number.isFinite(subtotal)) {
+  const toolingCost = roundCurrency(toolingResults.reduce((sum, line) => sum + line.cost, 0));
+  const infrastructureCost = roundCurrency(
+    infrastructureResults.reduce((sum, line) => sum + line.cost, 0),
+  );
+  const otherCost = roundCurrency(otherResults.reduce((sum, line) => sum + line.cost, 0));
+  const total = roundCurrency(personnelCost + toolingCost + infrastructureCost + otherCost);
+
+  if (!Number.isFinite(total)) {
     return {
       ok: false,
-      errors: [{ code: 'NON_FINITE_RESULT', message: 'Estimate total is not a finite number.' }],
+      errors: [
+        {
+          code: 'NON_FINITE_RESULT',
+          message: 'Estimate total is not a finite number.',
+        },
+      ],
     };
   }
 
-  const result: EstimateResult = {
+  const result: ProjectEstimateResult = {
     projectName: request.projectName,
-    currency: 'INR',
-    itemCount: lineResults.length,
-    lineResults,
-    subtotal,
-    total: subtotal,
-    priceSources: collectPriceSources(lineResults),
+    currency: request.currency,
+    personnel: { lines: personnelResults, subtotal: personnelCost },
+    tooling: { lines: toolingResults, subtotal: toolingCost },
+    infrastructure: { lines: infrastructureResults, subtotal: infrastructureCost },
+    other: { lines: otherResults, subtotal: otherCost },
+    personnelCost,
+    toolingCost,
+    infrastructureCost,
+    otherCost,
+    lineCount:
+      personnelResults.length +
+      toolingResults.length +
+      infrastructureResults.length +
+      otherResults.length,
+    total,
+    assumptions: buildAssumptions(request.currency),
   };
 
   return { ok: true, result };

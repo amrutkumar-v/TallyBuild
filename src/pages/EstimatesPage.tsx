@@ -11,7 +11,7 @@ import { EstimatesTable } from '../components/estimates/EstimatesTable';
 import { EstimatesToolbar } from '../components/estimates/EstimatesToolbar';
 import type { StatusFilterValue } from '../components/estimates/EstimatesToolbar';
 import type { FilterOption } from '../components/ui/FilterChips';
-import { PROJECT_TYPE_LABELS } from '../constants/labels';
+import { PROJECT_CATEGORY_LABELS } from '../constants/labels';
 import { useEstimates } from '../store/estimates-context';
 
 import styles from './EstimatesPage.module.css';
@@ -51,8 +51,8 @@ export default function EstimatesPage() {
         normalized === '' ||
         [
           estimate.projectName,
-          estimate.location,
-          PROJECT_TYPE_LABELS[estimate.projectType],
+          estimate.scope,
+          PROJECT_CATEGORY_LABELS[estimate.category],
         ].some((field) => field.toLowerCase().includes(normalized));
       return matchesStatus && matchesQuery;
     });
@@ -108,7 +108,7 @@ export default function EstimatesPage() {
       <PageHeader
         eyebrow="Workspace"
         title="Estimates"
-        description="Search and filter your building-product cost estimates. New drafts are stored in this browser only."
+        description="Search and filter your project cost estimates. New drafts are stored in this browser only."
         actions={
           <LinkButton to="/new-estimate" iconStart={<Plus size={16} aria-hidden="true" />}>
             New Estimate

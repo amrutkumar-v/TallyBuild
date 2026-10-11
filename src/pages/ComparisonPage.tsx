@@ -8,17 +8,17 @@ import { SectionCard } from '../components/ui/SectionCard';
 import styles from './ComparisonPage.module.css';
 
 const CAPABILITIES = [
-  'Line up two or more products for the same building element, side by side.',
-  'Compare unit price, warranty, lead time and availability from a verified dataset.',
-  'See which option fits the estimate best — without leaving the workspace.',
+  'Line up two or more project scenarios side by side.',
+  'Compare estimated totals, currency, duration and complexity on like-for-like terms.',
+  'See which option best fits the budget — without leaving the workspace.',
 ];
 
 const PREVIEW_ROWS = [
-  { label: 'Typical unit price', value: '—' },
-  { label: 'Warranty', value: '—' },
-  { label: 'Lead time', value: '—' },
-  { label: 'Availability', value: '—' },
-  { label: 'Rating', value: '—' },
+  { label: 'Estimated total', value: '—' },
+  { label: 'Currency', value: '—' },
+  { label: 'Duration (weeks)', value: '—' },
+  { label: 'Complexity', value: '—' },
+  { label: 'Category', value: '—' },
 ];
 
 export default function ComparisonPage() {
@@ -26,14 +26,14 @@ export default function ComparisonPage() {
     <>
       <PageHeader
         eyebrow="Phase 03 preview"
-        title="Product Comparison"
-        description="Weigh building-product alternatives on the factors that move a project budget."
+        title="Scenario Comparison"
+        description="Weigh project cost scenarios on the factors that move a budget."
         actions={<Badge tone="accent">Coming soon</Badge>}
       />
 
       <SectionCard
         title="What comparison will do"
-        description="Once product datasets are added, this screen will compare alternatives on like-for-like terms."
+        description="This screen will compare saved project estimates on like-for-like terms."
       >
         <ul className={styles.list}>
           {CAPABILITIES.map((item) => (
@@ -54,12 +54,12 @@ export default function ComparisonPage() {
           <div className={styles.previewHeader}>
             <span className={styles.previewCorner}>Attribute</span>
             <div className={styles.option}>
-              <span className={styles.optionName}>Option A</span>
-              <span className={styles.optionState}>No product selected</span>
+              <span className={styles.optionName}>Scenario A</span>
+              <span className={styles.optionState}>No scenario selected</span>
             </div>
             <div className={styles.option}>
-              <span className={styles.optionName}>Option B</span>
-              <span className={styles.optionState}>No product selected</span>
+              <span className={styles.optionName}>Scenario B</span>
+              <span className={styles.optionState}>No scenario selected</span>
             </div>
           </div>
           {PREVIEW_ROWS.map((row) => (
@@ -76,19 +76,19 @@ export default function ComparisonPage() {
         </div>
         <div className={styles.previewFooter}>
           <Button variant="secondary" disabled>
-            Compare products
+            Compare scenarios
           </Button>
-          <p className={styles.disabledNote}>Available once product datasets land in Phase 03.</p>
+          <p className={styles.disabledNote}>Available once scenario tooling lands in Phase 03.</p>
         </div>
       </SectionCard>
 
       <SectionCard
         title="Honest status"
-        description="No prices, ratings or product specifications are fabricated on this screen."
+        description="No totals, durations or specifications are fabricated on this screen."
       >
         <p className={styles.note}>
           <Scale size={16} aria-hidden="true" />
-          Verified product data will be added in Phase 03. Until then, every comparison value stays
+          Scenario comparison will be added in Phase 03. Until then, every comparison value stays
           empty rather than guessed.
         </p>
       </SectionCard>

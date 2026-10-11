@@ -6,7 +6,7 @@ import { EstimatesContext } from './estimates-context';
 import type { EstimatesContextValue } from './estimates-context';
 import type { Estimate } from '../types';
 
-const LOCAL_ESTIMATES_KEY = 'tallybuild.local-estimates.v1';
+const LOCAL_ESTIMATES_KEY = 'tallybuild.local-estimates.v2';
 const SAMPLE_TOGGLE_KEY = 'tallybuild.sample-data.v1';
 const STORAGE_PROBE_KEY = 'tallybuild.storage-probe';
 
@@ -28,11 +28,16 @@ function isEstimate(value: unknown): value is Estimate {
   return (
     typeof candidate.id === 'string' &&
     typeof candidate.projectName === 'string' &&
-    typeof candidate.location === 'string' &&
+    typeof candidate.scope === 'string' &&
+    typeof candidate.category === 'string' &&
+    typeof candidate.complexity === 'string' &&
+    typeof candidate.currency === 'string' &&
     typeof candidate.createdAt === 'string' &&
     typeof candidate.status === 'string' &&
-    typeof candidate.projectType === 'string' &&
+    (candidate.plannedStartDate === null || typeof candidate.plannedStartDate === 'string') &&
+    (candidate.durationWeeks === null || typeof candidate.durationWeeks === 'number') &&
     (candidate.estimatedAmount === null || typeof candidate.estimatedAmount === 'number') &&
+    (candidate.actualAmount === null || typeof candidate.actualAmount === 'number') &&
     candidate.origin === 'local'
   );
 }
@@ -98,10 +103,15 @@ export function EstimatesProvider({ children }: EstimatesProviderProps): ReactEl
     const estimate: Estimate = {
       id: createId(),
       projectName: input.projectName,
-      location: input.location,
-      projectType: input.projectType,
+      scope: input.scope,
+      category: input.category,
+      complexity: input.complexity,
+      currency: input.currency,
       createdAt: new Date().toISOString(),
+      plannedStartDate: input.plannedStartDate ?? null,
+      durationWeeks: input.durationWeeks ?? null,
       estimatedAmount: input.estimatedAmount ?? null,
+      actualAmount: null,
       status: 'draft',
       origin: 'local',
       notes: input.notes,

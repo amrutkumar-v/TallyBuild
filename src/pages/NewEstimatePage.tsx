@@ -4,19 +4,23 @@ import {
   Calculator,
   CheckCircle2,
   ClipboardList,
+  Layers,
   Loader2,
   RotateCcw,
   Save,
   Scale,
 } from 'lucide-react';
 
-import { getHealth, getProducts, calculateEstimate } from '../api';
-import { LineItemsEditor } from '../components/estimates/LineItemsEditor';
+import { getHealth, calculateEstimate } from '../api';
+import { CURRENCY_OPTIONS } from '../estimation';
+import type { CurrencyCode, ProjectEstimateRequest } from '../estimation';
+import { CostLinesEditor } from '../components/estimates/CostLinesEditor';
+import type { CostLineRow, CostLineRowErrors } from '../components/estimates/CostLinesEditor';
+import { PersonnelEditor } from '../components/estimates/PersonnelEditor';
 import type {
-  CatalogueStatus,
-  LineFieldErrors,
-  MaterialLine,
-} from '../components/estimates/LineItemsEditor';
+  PersonnelEditorRow,
+  PersonnelEditorRowErrors,
+} from '../components/estimates/PersonnelEditor';
 import { EstimateResultCard } from '../components/estimates/EstimateResultCard';
 import type { ResultState } from '../components/estimates/EstimateResultCard';
 import { Badge } from '../components/ui/Badge';
@@ -24,48 +28,67 @@ import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/ui/PageHeader';
 import { SectionCard } from '../components/ui/SectionCard';
 import { SelectField, TextAreaField, TextField } from '../components/ui/Fields';
-import { PROJECT_TYPE_OPTIONS, isProjectType } from '../constants/labels';
-import { SAMPLE_PRODUCTS } from '../estimation';
-import type { EstimateRequest, EstimateValidationError, MaterialProduct } from '../estimation';
+import {
+  PROJECT_CATEGORY_OPTIONS,
+  PROJECT_COMPLEXITY_OPTIONS,
+  isProjectCategory,
+  isProjectComplexity,
+} from '../constants/labels';
 import { useEstimates } from '../store/estimates-context';
 import type { Estimate, NewEstimateFormErrors, NewEstimateFormValues } from '../types';
 
 import styles from './NewEstimatePage.module.css';
 
+type ServiceStatus = 'checking' | 'online' | 'offline';
+
 const INITIAL_VALUES: NewEstimateFormValues = {
   projectName: '',
-  location: '',
-  projectType: '',
+  scope: '',
+  category: '',
+  complexity: '',
+  currency: 'INR',
+  plannedStartDate: '',
+  durationWeeks: '',
   notes: '',
 };
 
-interface CatalogueSnapshot {
-  status: CatalogueStatus;
-  products: readonly MaterialProduct[];
-}
-
 const FIELD_ORDER: ReadonlyArray<keyof NewEstimateFormErrors> = [
   'projectName',
-  'location',
-  'projectType',
+  'scope',
+  'category',
+  'complexity',
+  'plannedStartDate',
+  'durationWeeks',
   'notes',
 ];
 
-let lineIdCounter = 0;
+let rowIdCounter = 0;
 
-function nextLineId(): string {
-  lineIdCounter += 1;
-  return `line-${lineIdCounter}`;
+function nextRowId(prefix: string): string {
+  rowIdCounter += 1;
+  return `${prefix}-${rowIdCounter}`;
 }
 
-function initialLine(): MaterialLine {
-  return { id: nextLineId(), productId: '', quantity: '' };
+function emptyPersonnelRow(): PersonnelEditorRow {
+  return { id: nextRowId('personnel'), role: '', people: '1', hours: '', hourlyRate: '' };
+}
+
+function emptyCostRow(prefix: string): CostLineRow {
+  return { id: nextRowId(prefix), primary: '', amount: '', months: '' };
+}
+
+function isNonEmpty(value: string): boolean {
+  return value.trim() !== '';
+}
+
+function parseAmount(value: string): number {
+  return Number(value);
 }
 
 function validateProjectForm(values: NewEstimateFormValues): NewEstimateFormErrors {
   const errors: NewEstimateFormErrors = {};
   const projectName = values.projectName.trim();
-  const location = values.location.trim();
+  const scope = values.scope.trim();
 
   if (projectName === '') {
     errors.projectName = 'Enter a project name.';
@@ -75,16 +98,34 @@ function validateProjectForm(values: NewEstimateFormValues): NewEstimateFormErro
     errors.projectName = 'Keep the name under 80 characters.';
   }
 
-  if (location === '') {
-    errors.location = 'Enter the project location.';
-  } else if (location.length < 2) {
-    errors.location = 'Use at least 2 characters.';
-  } else if (location.length > 80) {
-    errors.location = 'Keep the location under 80 characters.';
+  if (scope === '') {
+    errors.scope = 'Describe the scope in a sentence.';
+  } else if (scope.length < 3) {
+    errors.scope = 'Use at least 3 characters.';
+  } else if (scope.length > 160) {
+    errors.scope = 'Keep the scope under 160 characters.';
   }
 
-  if (values.projectType === '') {
-    errors.projectType = 'Choose a project type.';
+  if (values.category === '') {
+    errors.category = 'Choose a project category.';
+  }
+
+  if (values.complexity === '') {
+    errors.complexity = 'Choose a complexity.';
+  }
+
+  if (values.plannedStartDate.trim() !== '') {
+    const start = new Date(values.plannedStartDate);
+    if (Number.isNaN(start.getTime())) {
+      errors.plannedStartDate = 'Enter a valid date.';
+    }
+  }
+
+  if (values.durationWeeks.trim() !== '') {
+    const weeks = Number(values.durationWeeks);
+    if (!Number.isFinite(weeks) || weeks < 0) {
+      errors.durationWeeks = 'Enter a duration of 0 weeks or more.';
+    }
   }
 
   if (values.notes.length > 500) {
@@ -94,166 +135,103 @@ function validateProjectForm(values: NewEstimateFormValues): NewEstimateFormErro
   return errors;
 }
 
-function validateLines(
-  lines: ReadonlyArray<MaterialLine>,
-): Record<string, LineFieldErrors> {
-  const errors: Record<string, LineFieldErrors> = {};
-  for (const line of lines) {
-    const lineError: LineFieldErrors = {};
-    if (line.productId === '') {
-      lineError.productId = 'Choose a product.';
+function validateNumber(
+  value: string,
+  label: string,
+  errors: Record<string, string | undefined>,
+  key: string,
+): void {
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    errors[key] = `Enter a value for ${label}.`;
+    return;
+  }
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    errors[key] = `${label} must be a number that is 0 or more.`;
+  }
+}
+
+function validatePersonnel(
+  rows: ReadonlyArray<PersonnelEditorRow>,
+): Record<string, PersonnelEditorRowErrors> {
+  const result: Record<string, PersonnelEditorRowErrors> = {};
+  for (const row of rows) {
+    const errors: PersonnelEditorRowErrors = {};
+    if (!isNonEmpty(row.role)) {
+      errors.role = 'Enter a role.';
     }
-    const quantity = line.quantity.trim();
-    if (quantity === '') {
-      lineError.quantity = 'Enter a quantity.';
-    } else {
-      const numeric = Number(quantity);
-      if (!Number.isFinite(numeric)) {
-        lineError.quantity = 'Enter a valid number.';
-      } else if (numeric < 0) {
-        lineError.quantity = "Quantity can't be negative.";
-      }
-    }
-    if (lineError.productId !== undefined || lineError.quantity !== undefined) {
-      errors[line.id] = lineError;
+    validateNumber(row.people, 'people', errors, 'people');
+    validateNumber(row.hours, 'hours', errors, 'hours');
+    validateNumber(row.hourlyRate, 'hourly rate', errors, 'hourlyRate');
+    if (Object.keys(errors).length > 0) {
+      result[row.id] = errors;
     }
   }
-  return errors;
+  return result;
 }
 
-function isUsableLine(
-  line: MaterialLine,
-  products: readonly MaterialProduct[],
-): boolean {
-  const numeric = Number(line.quantity);
-  return (
-    products.some((product) => product.id === line.productId) &&
-    line.quantity.trim() !== '' &&
-    Number.isFinite(numeric) &&
-    numeric >= 0
-  );
+function validateCostLines(
+  rows: ReadonlyArray<CostLineRow>,
+  withMonths = false,
+): Record<string, CostLineRowErrors> {
+  const result: Record<string, CostLineRowErrors> = {};
+  for (const row of rows) {
+    const errors: CostLineRowErrors = {};
+    if (!isNonEmpty(row.primary)) {
+      errors.primary = 'Enter a description.';
+    }
+    validateNumber(row.amount, 'cost', errors, 'amount');
+    if (withMonths) {
+      validateNumber(row.months, 'months', errors, 'months');
+    }
+    if (Object.keys(errors).length > 0) {
+      result[row.id] = errors;
+    }
+  }
+  return result;
 }
 
-function focusFirstProjectError(errors: NewEstimateFormErrors): boolean {
+function focusFirstProjectError(errors: NewEstimateFormErrors): void {
   const first = FIELD_ORDER.find((field) => errors[field]);
   if (first) {
     document.getElementById(first)?.focus();
-    return true;
   }
-  return false;
-}
-
-function focusFirstLineError(lineErrors: Record<string, LineFieldErrors>): boolean {
-  for (const [id, error] of Object.entries(lineErrors)) {
-    const field = error.quantity !== undefined ? 'quantity' : 'productId';
-    const element = document.getElementById(`line-${id}-${field}`);
-    if (element) {
-      element.focus();
-      return true;
-    }
-  }
-  return false;
-}
-
-function resolveLineIndex(
-  detail: EstimateValidationError,
-  eligibleLines: ReadonlyArray<MaterialLine>,
-): MaterialLine | undefined {
-  if (
-    typeof detail.lineIndex === 'number' &&
-    detail.lineIndex >= 0 &&
-    detail.lineIndex < eligibleLines.length
-  ) {
-    return eligibleLines[detail.lineIndex];
-  }
-  if (detail.productId) {
-    return eligibleLines.find((line) => line.productId === detail.productId);
-  }
-  return undefined;
-}
-
-function mapServerLineErrors(
-  details: readonly EstimateValidationError[],
-  eligibleLines: ReadonlyArray<MaterialLine>,
-): { lineErrors: Record<string, LineFieldErrors>; globalMessages: string[] } {
-  const lineErrors: Record<string, LineFieldErrors> = {};
-  const globalMessages: string[] = [];
-
-  for (const detail of details) {
-    const row = resolveLineIndex(detail, eligibleLines);
-    if (!row) {
-      globalMessages.push(detail.message);
-      continue;
-    }
-    const current = lineErrors[row.id] ?? {};
-    if (detail.code === 'MISSING_PRODUCT') {
-      current.productId = detail.message;
-    } else if (
-      detail.code === 'INVALID_QUANTITY' ||
-      detail.code === 'INVALID_UNIT' ||
-      detail.code === 'INCOMPATIBLE_UNIT' ||
-      detail.code === 'UNIT_CONVERSION_UNSUPPORTED'
-    ) {
-      current.quantity = detail.message;
-    } else {
-      globalMessages.push(detail.message);
-      continue;
-    }
-    lineErrors[row.id] = current;
-  }
-
-  return { lineErrors, globalMessages };
-}
-
-function calculateDisabledReason(
-  status: CatalogueStatus,
-  completeLineCount: number,
-  calculating: boolean,
-): string | undefined {
-  if (calculating) {
-    return undefined;
-  }
-  if (status === 'loading') {
-    return 'Loading the product catalogue…';
-  }
-  if (status === 'offline') {
-    return 'The estimation service is offline — live pricing is paused. Start the backend and retry.';
-  }
-  if (status === 'empty') {
-    return 'The catalogue is empty, so nothing can be priced right now.';
-  }
-  if (completeLineCount === 0) {
-    return 'Add at least one material with a product and quantity.';
-  }
-  return undefined;
 }
 
 const NEXT_STEPS = [
   {
     step: '1',
     title: 'Project details',
-    detail: 'Name, location and type on this screen.',
+    detail: 'Name, scope, category and complexity on this screen.',
     phase: 'Now',
     tone: 'success' as const,
   },
   {
     step: '2',
-    title: 'Quantities & materials',
-    detail: 'Line items priced from the live service catalogue.',
+    title: 'Cost lines',
+    detail: 'Personnel, tooling, infrastructure and other costs.',
     phase: 'Now',
     tone: 'success' as const,
   },
   {
     step: '3',
-    title: 'Cost estimate',
-    detail: 'The estimation engine prices the draft on submit.',
+    title: 'Currency & timing',
+    detail: 'Choose one currency and an optional planned window.',
     phase: 'Now',
     tone: 'success' as const,
   },
   {
     step: '4',
+    title: 'Cost estimate',
+    detail: 'The estimation service totals the draft on calculate.',
+    phase: 'Now',
+    tone: 'success' as const,
+  },
+  {
+    step: '5',
     title: 'Compare & scenarios',
-    detail: 'Product comparison and what-if analysis.',
+    detail: 'Scenario comparison and what-if analysis.',
     phase: 'Phase 03',
     tone: 'neutral' as const,
   },
@@ -263,54 +241,37 @@ export default function NewEstimatePage() {
   const { addEstimate, persistenceAvailable } = useEstimates();
   const [values, setValues] = useState<NewEstimateFormValues>(INITIAL_VALUES);
   const [projectErrors, setProjectErrors] = useState<NewEstimateFormErrors>({});
-  const [catalogueStatus, setCatalogueStatus] = useState<CatalogueStatus>('loading');
-  const [products, setProducts] = useState<readonly MaterialProduct[]>([]);
-  const [lines, setLines] = useState<ReadonlyArray<MaterialLine>>([initialLine()]);
-  const [lineErrors, setLineErrors] = useState<Record<string, LineFieldErrors>>({});
+  const [serviceStatus, setServiceStatus] = useState<ServiceStatus>('checking');
+
+  const [personnelRows, setPersonnelRows] = useState<ReadonlyArray<PersonnelEditorRow>>([
+    emptyPersonnelRow(),
+  ]);
+  const [toolingRows, setToolingRows] = useState<ReadonlyArray<CostLineRow>>([]);
+  const [infrastructureRows, setInfrastructureRows] = useState<ReadonlyArray<CostLineRow>>([]);
+  const [otherRows, setOtherRows] = useState<ReadonlyArray<CostLineRow>>([]);
+
+  const [personnelErrors, setPersonnelErrors] = useState<
+    Record<string, PersonnelEditorRowErrors>
+  >({});
+  const [toolingErrors, setToolingErrors] = useState<Record<string, CostLineRowErrors>>({});
+  const [infrastructureErrors, setInfrastructureErrors] = useState<
+    Record<string, CostLineRowErrors>
+  >({});
+  const [otherErrors, setOtherErrors] = useState<Record<string, CostLineRowErrors>>({});
+
   const [savedDraft, setSavedDraft] = useState<Estimate | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [result, setResult] = useState<ResultState>({ kind: 'idle' });
 
-  const fetchCatalogue = useCallback(async (): Promise<CatalogueSnapshot> => {
+  const checkService = useCallback(async () => {
+    setServiceStatus('checking');
     const health = await getHealth();
-    if (!health.ok || health.data.status !== 'ok') {
-      return { status: 'offline', products: SAMPLE_PRODUCTS };
-    }
-
-    const list = await getProducts();
-    if (!list.ok) {
-      return { status: 'offline', products: SAMPLE_PRODUCTS };
-    }
-
-    if (list.data.products.length === 0) {
-      return { status: 'empty', products: [] };
-    }
-
-    return { status: 'online', products: list.data.products };
+    setServiceStatus(health.ok && health.data.status === 'ok' ? 'online' : 'offline');
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    void fetchCatalogue().then((snapshot) => {
-      if (cancelled) {
-        return;
-      }
-      setCatalogueStatus(snapshot.status);
-      setProducts(snapshot.products);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [fetchCatalogue]);
-
-  const retryCatalogue = () => {
-    setCatalogueStatus('loading');
-    setProducts([]);
-    void fetchCatalogue().then((snapshot) => {
-      setCatalogueStatus(snapshot.status);
-      setProducts(snapshot.products);
-    });
-  };
+    void checkService();
+  }, [checkService]);
 
   const updateValues = (patch: Partial<NewEstimateFormValues>) => {
     setValues((current) => ({ ...current, ...patch }));
@@ -322,135 +283,176 @@ export default function NewEstimatePage() {
     );
   };
 
-  const clearLineError = (lineId: string, field: keyof LineFieldErrors) => {
-    setLineErrors((current) => {
-      const line = current[lineId];
-      if (!line || line[field] === undefined) {
-        return current;
-      }
-      const next = { ...current, [lineId]: { ...line, [field]: undefined } };
-      if (next[lineId].productId === undefined && next[lineId].quantity === undefined) {
-        delete next[lineId];
-      }
-      return next;
-    });
-  };
+  const totalRowCount =
+    personnelRows.length +
+    toolingRows.length +
+    infrastructureRows.length +
+    otherRows.length;
 
-  const clearLineQuantityError = (lineId: string) => clearLineError(lineId, 'quantity');
-  const clearLineProductError = (lineId: string) => clearLineError(lineId, 'productId');
-
-  const addLine = () => {
-    setLines((current) => [...current, initialLine()]);
-  };
-
-  const removeLine = (lineId: string) => {
-    setLines((current) => current.filter((line) => line.id !== lineId));
-    setLineErrors((current) => {
-      if (!current[lineId]) {
-        return current;
-      }
-      const next = { ...current };
-      delete next[lineId];
-      return next;
-    });
-  };
-
-  const changeLine = (lineId: string, patch: Partial<MaterialLine>) => {
-    setLines((current) =>
-      current.map((line) => (line.id === lineId ? { ...line, ...patch } : line)),
+  const updatePersonnel = (id: string, patch: Partial<PersonnelEditorRow>) => {
+    setPersonnelRows((current) =>
+      current.map((row) => (row.id === id ? { ...row, ...patch } : row)),
     );
   };
+
+  const clearPersonnelError = (id: string, field: keyof PersonnelEditorRowErrors) => {
+    setPersonnelErrors((current) => {
+      const rowError = current[id];
+      if (!rowError?.[field]) {
+        return current;
+      }
+      return { ...current, [id]: { ...rowError, [field]: undefined } };
+    });
+  };
+
+  const updateCostRow = (
+    setter: typeof setToolingRows,
+    id: string,
+    patch: Partial<CostLineRow>,
+  ) => {
+    setter((current) => current.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  };
+
+  const clearCostError = (
+    setter: typeof setToolingErrors,
+    id: string,
+    field: keyof CostLineRowErrors,
+  ) => {
+    setter((current) => {
+      const rowError = current[id];
+      if (!rowError?.[field]) {
+        return current;
+      }
+      return { ...current, [id]: { ...rowError, [field]: undefined } };
+    });
+  };
+
+  const removePersonnel = (id: string) => {
+    setPersonnelRows((current) => current.filter((row) => row.id !== id));
+    setPersonnelErrors((current) => {
+      if (!current[id]) return current;
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const makeRemoveCost = (
+    setRows: typeof setToolingRows,
+    setErrors: typeof setToolingErrors,
+  ) => (id: string) => {
+    setRows((current) => current.filter((row) => row.id !== id));
+    setErrors((current) => {
+      if (!current[id]) return current;
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+  };
+
+  const removeTooling = makeRemoveCost(setToolingRows, setToolingErrors);
+  const removeInfrastructure = makeRemoveCost(setInfrastructureRows, setInfrastructureErrors);
+  const removeOther = makeRemoveCost(setOtherRows, setOtherErrors);
+
+  const buildRequest = (): ProjectEstimateRequest => ({
+    projectName: values.projectName.trim(),
+    currency: values.currency,
+    personnel: personnelRows.map((row) => ({
+      role: row.role.trim(),
+      people: parseAmount(row.people),
+      hours: parseAmount(row.hours),
+      hourlyRate: parseAmount(row.hourlyRate),
+    })),
+    tooling: toolingRows.map((row) => ({
+      name: row.primary.trim(),
+      amount: parseAmount(row.amount),
+    })),
+    infrastructure: infrastructureRows.map((row) => ({
+      name: row.primary.trim(),
+      monthlyCost: parseAmount(row.amount),
+      months: parseAmount(row.months),
+    })),
+    other: otherRows.map((row) => ({
+      description: row.primary.trim(),
+      amount: parseAmount(row.amount),
+    })),
+  });
+
+  const draftInput = (estimatedAmount: number | null) => ({
+    projectName: values.projectName.trim(),
+    scope: values.scope.trim(),
+    category: values.category as Exclude<NewEstimateFormValues['category'], ''>,
+    complexity: values.complexity as Exclude<NewEstimateFormValues['complexity'], ''>,
+    currency: values.currency,
+    plannedStartDate: values.plannedStartDate.trim() === '' ? null : values.plannedStartDate,
+    durationWeeks:
+      values.durationWeeks.trim() === '' ? null : Number(values.durationWeeks),
+    notes: values.notes.trim() === '' ? undefined : values.notes.trim(),
+    estimatedAmount,
+  });
 
   const handleSaveDraft = () => {
     const nextErrors = validateProjectForm(values);
     setProjectErrors(nextErrors);
-    if (focusFirstProjectError(nextErrors)) {
+    if (Object.values(nextErrors).some(Boolean)) {
+      focusFirstProjectError(nextErrors);
       return;
     }
-    if (!isProjectType(values.projectType)) {
+    if (!isProjectCategory(values.category) || !isProjectComplexity(values.complexity)) {
       return;
     }
-
-    const estimate = addEstimate({
-      projectName: values.projectName.trim(),
-      location: values.location.trim(),
-      projectType: values.projectType,
-      notes: values.notes.trim() === '' ? undefined : values.notes.trim(),
-    });
+    const estimate = addEstimate(draftInput(null));
     setSavedDraft(estimate);
   };
 
   const runCalculate = async () => {
     const nextProjectErrors = validateProjectForm(values);
-    const nextLineErrors = validateLines(lines);
+    const nextPersonnelErrors = validatePersonnel(personnelRows);
+    const nextToolingErrors = validateCostLines(toolingRows);
+    const nextInfrastructureErrors = validateCostLines(infrastructureRows, true);
+    const nextOtherErrors = validateCostLines(otherRows);
+
     setProjectErrors(nextProjectErrors);
-    setLineErrors(nextLineErrors);
+    setPersonnelErrors(nextPersonnelErrors);
+    setToolingErrors(nextToolingErrors);
+    setInfrastructureErrors(nextInfrastructureErrors);
+    setOtherErrors(nextOtherErrors);
 
-    if (focusFirstProjectError(nextProjectErrors)) {
+    const hasErrors =
+      Object.values(nextProjectErrors).some(Boolean) ||
+      Object.keys(nextPersonnelErrors).length > 0 ||
+      Object.keys(nextToolingErrors).length > 0 ||
+      Object.keys(nextInfrastructureErrors).length > 0 ||
+      Object.keys(nextOtherErrors).length > 0;
+    if (hasErrors) {
+      focusFirstProjectError(nextProjectErrors);
       return;
     }
-    if (focusFirstLineError(nextLineErrors)) {
+    if (serviceStatus !== 'online') {
       return;
     }
-    if (catalogueStatus !== 'online') {
+    if (!isProjectCategory(values.category) || !isProjectComplexity(values.complexity)) {
       return;
     }
-    if (!isProjectType(values.projectType)) {
-      return;
-    }
-
-    const eligibleLines = lines.filter((line) => isUsableLine(line, products));
-    if (eligibleLines.length === 0) {
-      return;
-    }
-
-    const request: EstimateRequest = {
-      projectName: values.projectName.trim(),
-      lines: eligibleLines.map((line) => {
-        const product = products.find((candidate) => candidate.id === line.productId);
-        return {
-          productId: line.productId,
-          quantity: Number(line.quantity),
-          unit: product?.unit,
-        };
-      }),
-    };
 
     setCalculating(true);
     setSavedDraft(null);
     setResult({ kind: 'loading' });
 
-    const response = await calculateEstimate(request);
+    const response = await calculateEstimate(buildRequest());
     setCalculating(false);
 
     if (response.ok) {
-      const estimate = addEstimate({
-        projectName: values.projectName.trim(),
-        location: values.location.trim(),
-        projectType: values.projectType,
-        notes: values.notes.trim() === '' ? undefined : values.notes.trim(),
-        estimatedAmount: response.data.total,
-      });
+      const estimate = addEstimate(draftInput(response.data.total));
       setSavedDraft(estimate);
       setResult({ kind: 'success', estimate, result: response.data });
       return;
     }
 
-    if (response.error.code === 'VALIDATION_ERROR' && response.error.details) {
-      const { lineErrors: serverLineErrors, globalMessages } = mapServerLineErrors(
-        response.error.details,
-        eligibleLines,
-      );
-      setLineErrors(serverLineErrors);
-      const summary = [
-        ...globalMessages,
-        Object.keys(serverLineErrors).length > 0 ? 'Some material lines were rejected.' : '',
-      ]
-        .filter(Boolean)
-        .join(' ');
+    if (response.error.code === 'VALIDATION_ERROR') {
       setResult({
         kind: 'validation-error',
-        message: summary || response.error.message,
+        message: response.error.message,
       });
       return;
     }
@@ -466,27 +468,40 @@ export default function NewEstimatePage() {
   const handleReset = () => {
     setValues(INITIAL_VALUES);
     setProjectErrors({});
-    setLines([initialLine()]);
-    setLineErrors({});
+    setPersonnelRows([emptyPersonnelRow()]);
+    setToolingRows([]);
+    setInfrastructureRows([]);
+    setOtherRows([]);
+    setPersonnelErrors({});
+    setToolingErrors({});
+    setInfrastructureErrors({});
+    setOtherErrors({});
     setSavedDraft(null);
     setResult({ kind: 'idle' });
     document.getElementById('projectName')?.focus();
   };
 
-  const completeLineCount = lines.filter((line) => isUsableLine(line, products)).length;
-  const calculateDisabled = calculating || catalogueStatus !== 'online' || completeLineCount === 0;
-  const disabledReason = calculateDisabledReason(
-    catalogueStatus,
-    completeLineCount,
-    calculating,
-  );
+  const calculateDisabled =
+    calculating || serviceStatus !== 'online' || totalRowCount === 0;
+
+  const disabledReason = (() => {
+    if (calculating) return undefined;
+    if (serviceStatus === 'checking') return 'Checking the estimation service…';
+    if (serviceStatus === 'offline') {
+      return 'The estimation service is offline — calculation is paused. Start the backend and retry.';
+    }
+    if (totalRowCount === 0) {
+      return 'Add at least one cost line (personnel, tooling, infrastructure or other).';
+    }
+    return undefined;
+  })();
 
   return (
     <>
       <PageHeader
         eyebrow="New estimate"
         title="Create a project estimate"
-        description="Add the project details, pick building materials and let the estimation service price the draft."
+        description="Describe the project, add personnel, tooling, infrastructure and other costs, then calculate a transparent total in one currency."
       />
 
       <div className={styles.layout}>
@@ -507,72 +522,182 @@ export default function NewEstimatePage() {
                 }}
                 error={projectErrors.projectName}
                 hint="A short, recognisable name for this estimate."
-                placeholder="e.g. Riverside Villa Extension"
+                placeholder="e.g. Atlas Platform Rebuild"
                 maxLength={80}
               />
 
               <TextField
-                id="location"
-                label="Location"
+                id="scope"
+                label="Scope"
                 required
-                value={values.location}
+                value={values.scope}
                 onChange={(value) => {
-                  updateValues({ location: value });
-                  clearProjectError('location');
+                  updateValues({ scope: value });
+                  clearProjectError('scope');
                 }}
-                error={projectErrors.location}
-                hint="City and state help identify the project later."
-                placeholder="e.g. Bengaluru, Karnataka"
-                maxLength={80}
+                error={projectErrors.scope}
+                hint="One sentence on what this project covers."
+                placeholder="e.g. Re-platform the billing core onto a managed runtime"
+                maxLength={160}
               />
 
               <SelectField
-                id="projectType"
-                label="Project type"
+                id="category"
+                label="Category"
                 required
-                value={values.projectType}
+                value={values.category}
                 onChange={(value) => {
-                  updateValues({ projectType: isProjectType(value) ? value : '' });
-                  clearProjectError('projectType');
+                  updateValues({ category: isProjectCategory(value) ? value : '' });
+                  clearProjectError('category');
                 }}
-                error={projectErrors.projectType}
-                options={PROJECT_TYPE_OPTIONS}
-                placeholder="Select a project type"
+                options={PROJECT_CATEGORY_OPTIONS}
+                error={projectErrors.category}
+                placeholder="Select a category"
+              />
+
+              <SelectField
+                id="complexity"
+                label="Complexity"
+                required
+                value={values.complexity}
+                onChange={(value) => {
+                  updateValues({ complexity: isProjectComplexity(value) ? value : '' });
+                  clearProjectError('complexity');
+                }}
+                options={PROJECT_COMPLEXITY_OPTIONS}
+                error={projectErrors.complexity}
+                placeholder="Select a complexity"
+              />
+
+              <SelectField
+                id="currency"
+                label="Currency"
+                required
+                value={values.currency}
+                onChange={(value) => {
+                  updateValues({ currency: value as CurrencyCode });
+                }}
+                options={CURRENCY_OPTIONS}
+                hint="One currency per estimate. Live currency conversion is not configured."
+              />
+
+              <TextField
+                id="plannedStartDate"
+                label="Planned start date"
+                type="date"
+                value={values.plannedStartDate}
+                onChange={(value) => {
+                  updateValues({ plannedStartDate: value });
+                  clearProjectError('plannedStartDate');
+                }}
+                error={projectErrors.plannedStartDate}
+                hint="Optional. Leave blank if the schedule is not set."
+              />
+
+              <TextField
+                id="durationWeeks"
+                label="Duration (weeks)"
+                type="number"
+                min={0}
+                step="1"
+                inputMode="numeric"
+                value={values.durationWeeks}
+                onChange={(value) => {
+                  updateValues({ durationWeeks: value });
+                  clearProjectError('durationWeeks');
+                }}
+                error={projectErrors.durationWeeks}
+                hint="Optional. A rough schedule length."
+                placeholder="e.g. 12"
               />
 
               <TextAreaField
                 id="notes"
-                label="Scope notes"
+                label="Notes"
                 value={values.notes}
                 onChange={(value) => {
                   updateValues({ notes: value });
                   clearProjectError('notes');
                 }}
                 error={projectErrors.notes}
-                hint="Optional — what is being built or renovated?"
-                placeholder="Short description of the scope"
+                hint="Optional working notes for this estimate."
+                placeholder="Assumptions, risks or context"
                 maxLength={500}
               />
             </SectionCard>
 
-            <LineItemsEditor
-              status={catalogueStatus}
-              products={products}
-              lines={lines}
-              errors={lineErrors}
+            <PersonnelEditor
+              rows={personnelRows}
+              errors={personnelErrors}
+              currency={values.currency}
               disabled={calculating}
-              onAddLine={addLine}
-              onRemoveLine={removeLine}
-              onChangeLine={(lineId, patch) => {
-                changeLine(lineId, patch);
-                if (patch.productId !== undefined) {
-                  clearLineProductError(lineId);
-                }
-                if (patch.quantity !== undefined) {
-                  clearLineQuantityError(lineId);
-                }
-              }}
-              onRetryCatalogue={retryCatalogue}
+              onAdd={() => setPersonnelRows((current) => [...current, emptyPersonnelRow()])}
+              onRemove={removePersonnel}
+              onChange={updatePersonnel}
+              onClearError={clearPersonnelError}
+            />
+
+            <CostLinesEditor
+              title="Tooling"
+              description="One-off tools, licences and equipment. Cost = the amount you enter."
+              icon={Layers}
+              primaryLabel="Tool or licence"
+              primaryPlaceholder="e.g. Design suite licence"
+              amountLabel="Cost"
+              currency={values.currency}
+              rows={toolingRows}
+              errors={toolingErrors}
+              emptyTitle="No tooling costs yet"
+              emptyDescription="Add tools, licences or equipment if this project needs them."
+              addLabel="Add a tool"
+              disabled={calculating}
+              onAdd={() => setToolingRows((current) => [...current, emptyCostRow('tooling')])}
+              onRemove={removeTooling}
+              onChange={(id, patch) => updateCostRow(setToolingRows, id, patch)}
+              onClearError={(id, field) => clearCostError(setToolingErrors, id, field)}
+            />
+
+            <CostLinesEditor
+              title="Infrastructure"
+              description="Recurring resources. Cost = monthly cost × months."
+              icon={Layers}
+              primaryLabel="Resource"
+              primaryPlaceholder="e.g. Cloud hosting"
+              amountLabel="Monthly cost"
+              monthsLabel="Months"
+              currency={values.currency}
+              rows={infrastructureRows}
+              errors={infrastructureErrors}
+              emptyTitle="No infrastructure costs yet"
+              emptyDescription="Add recurring resources such as hosting or databases."
+              addLabel="Add a resource"
+              disabled={calculating}
+              onAdd={() =>
+                setInfrastructureRows((current) => [...current, emptyCostRow('infrastructure')])
+              }
+              onRemove={removeInfrastructure}
+              onChange={(id, patch) => updateCostRow(setInfrastructureRows, id, patch)}
+              onClearError={(id, field) => clearCostError(setInfrastructureErrors, id, field)}
+            />
+
+            <CostLinesEditor
+              title="Other costs"
+              description="Anything else: contingency, travel, training or third-party fees."
+              icon={Layers}
+              primaryLabel="Description"
+              primaryPlaceholder="e.g. Contingency"
+              amountLabel="Cost"
+              currency={values.currency}
+              rows={otherRows}
+              errors={otherErrors}
+              emptyTitle="No other costs yet"
+              emptyDescription="Add contingency, travel or other one-off costs if needed."
+              addLabel="Add a cost"
+              disabled={calculating}
+              onAdd={() => setOtherRows((current) => [...current, emptyCostRow('other')])}
+              onRemove={removeOther}
+              onChange={(id, patch) => updateCostRow(setOtherRows, id, patch)}
+              onClearError={(id, field) => clearCostError(setOtherErrors, id, field)}
             />
 
             {savedDraft && result.kind === 'idle' ? (
@@ -595,7 +720,7 @@ export default function NewEstimatePage() {
                 disabled={calculateDisabled}
                 iconStart={
                   calculating ? (
-                    <Loader2 size={16} className={styles.spinner} aria-hidden="true" />
+                    <Loader2 className={styles.spinner} size={16} aria-hidden="true" />
                   ) : (
                     <Calculator size={16} aria-hidden="true" />
                   )
@@ -625,13 +750,21 @@ export default function NewEstimatePage() {
             {disabledReason ? (
               <p className={styles.reason} id="calculate-reason" aria-live="polite">
                 {disabledReason}
+                {serviceStatus === 'offline' ? (
+                  <>
+                    {' '}
+                    <Button variant="ghost" size="sm" onClick={() => void checkService()}>
+                      Retry connection
+                    </Button>
+                  </>
+                ) : null}
               </p>
             ) : null}
 
             <p className={styles.formNote}>
-              Calculate sends your material lines to the estimation service and saves the
-              resulting draft in this browser. If the service is offline you can only save an
-              unpriced draft.
+              Calculate sends your cost lines to the estimation service and saves the resulting
+              draft in this browser. If the service is offline you can only save an unpriced
+              draft.
             </p>
           </form>
         </div>
@@ -663,12 +796,12 @@ export default function NewEstimatePage() {
           <SectionCard title="Why start here">
             <p className={styles.asideText}>
               <ClipboardList size={16} aria-hidden="true" />
-              Capturing project details and quantities in one place keeps every estimate
-              organised and ready to price.
+              Capturing project details and cost lines in one place keeps every estimate
+              organised and ready to total.
             </p>
             <p className={styles.asideText}>
               <Scale size={16} aria-hidden="true" />
-              Comparison and what-if analysis will build on these same project records.
+              Scenario comparison and what-if analysis will build on these same project records.
             </p>
           </SectionCard>
         </aside>
