@@ -135,7 +135,6 @@ function CostDistributionChart({ estimates }: { estimates: ReadonlyArray<{ categ
               dataKey="value"
               radius={[0, 8, 8, 0]}
               maxBarSize={40}
-              layout="vertical"
               isAnimationActive={isVisible}
             >
               {categories.map((entry, index) => (
@@ -168,7 +167,7 @@ function StatCard({
 }: {
   label: string;
   value: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; size?: number }>;
   trend?: 'up' | 'down';
   trendValue?: string;
 }) {

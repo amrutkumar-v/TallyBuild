@@ -120,6 +120,15 @@ export function EstimatesProvider({ children }: EstimatesProviderProps): ReactEl
     return estimate;
   }, []);
 
+  const clearAllDrafts = useCallback(() => {
+    try {
+      window.localStorage.removeItem(LOCAL_ESTIMATES_KEY);
+      setLocalEstimates([]);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const toggleSampleData = useCallback(() => {
     setSampleDataVisible((current) => !current);
   }, []);
@@ -138,8 +147,9 @@ export function EstimatesProvider({ children }: EstimatesProviderProps): ReactEl
       toggleSampleData,
       persistenceAvailable,
       addEstimate,
+      clearAllDrafts,
     }),
-    [estimates, sampleDataVisible, toggleSampleData, persistenceAvailable, addEstimate],
+    [estimates, sampleDataVisible, toggleSampleData, persistenceAvailable, addEstimate, clearAllDrafts],
   );
 
   return <EstimatesContext.Provider value={value}>{children}</EstimatesContext.Provider>;

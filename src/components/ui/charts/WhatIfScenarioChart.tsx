@@ -163,7 +163,7 @@ export function WhatIfScenarioChart({
                   strokeWidth={2}
                   fillOpacity={1}
                   fill={`url(#gradient-${key})`}
-                  isAnimationActive={!window.matchMedia('(prefers-reduced-motion: reduce)').matches}
+                  isAnimationActive={typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches}
                   animationDuration={800}
                   animationEasing="ease-out"
                 />
@@ -176,7 +176,7 @@ export function WhatIfScenarioChart({
               strokeWidth={2}
               strokeDasharray="6 4"
               dot={false}
-              isAnimationActive={!window.matchMedia('(prefers-reduced-motion: reduce)').matches}
+              isAnimationActive={typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches}
               animationDuration={800}
               animationEasing="ease-out"
             />

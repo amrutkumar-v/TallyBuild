@@ -5,4 +5,5 @@
   background: var(--color-danger-soft);
   font-size: var(--text-sm);
   color: var(--color-danger);
+  animation: slideDown 0.3s var(--ease-out) forwards;
 }

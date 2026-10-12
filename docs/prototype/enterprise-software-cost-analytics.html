@@ -1,0 +1,2330 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TallyBuild AI — Enterprise Software Cost Analytics</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js for premium data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        bgMain: '#080A0F',
+                        bgSidebar: '#0B0E14',
+                        bgCard: '#11151D',
+                        bgElevated: '#161C27',
+                        borderMain: '#273142',
+                        textPrimary: '#F5F7FA',
+                        textSecondary: '#97A2B3',
+                        goldPrimary: '#E7B447',
+                        goldHighlight: '#FFD77A'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        slideUp: {
+                            '0%': { opacity: '0', transform: 'translateY(15px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #080A0F;
+            color: #F5F7FA;
+            overflow-x: hidden;
+        }
+        
+        /* Restrained, professional custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #080A0F;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #273142;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #97A2B3;
+        }
+        
+        /* Glass effect for headers */
+        .glass-header {
+            background: rgba(11, 14, 20, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        /* Focus rings for accessibility */
+        *:focus-visible {
+            outline: 2px solid #E7B447;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body class="bg-bgMain text-textPrimary h-screen flex flex-col overflow-hidden selection:bg-goldPrimary/30 selection:text-goldHighlight">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col space-y-3 pointer-events-none"></div>
+
+    <!-- ========================================================================== -->
+    <!-- AUTHENTICATION / LOGIN PAGE OVERLAY                                        -->
+    <!-- ========================================================================== -->
+    <div id="auth-page" class="fixed inset-0 z-50 bg-bgMain flex flex-col justify-center items-center overflow-y-auto p-4 sm:p-6 md:p-8 animate-fade-in" style="background: radial-gradient(circle at 12% 18%, rgba(231, 180, 71, 0.08) 0%, transparent 45%), radial-gradient(circle at 88% 82%, rgba(59, 130, 246, 0.06) 0%, transparent 50%), #080A0F;">
+        
+        <!-- Ambient decorative blur auras -->
+        <div class="absolute -top-32 -left-32 w-96 h-96 bg-goldPrimary/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="w-full max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10 my-auto">
+            
+            <!-- Left Hero / Brand Showcase (Visible on desktop) -->
+            <div class="lg:col-span-5 space-y-6 text-left hidden lg:block pr-4">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-goldPrimary flex items-center justify-center text-bgMain shadow-lg shadow-goldPrimary/20">
+                        <svg class="w-6 h-6 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold tracking-tight text-textPrimary flex items-center gap-2">
+                            TallyBuild <span class="text-[10px] px-1.5 py-0.5 rounded bg-goldPrimary/15 text-goldPrimary border border-goldPrimary/30 font-semibold uppercase tracking-wider">AI</span>
+                        </h2>
+                        <p class="text-[11px] text-textSecondary uppercase tracking-widest font-medium">Domain 4C • Hackfest 2026</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <h1 class="text-3xl font-bold tracking-tight text-textPrimary leading-tight">
+                        Enterprise Cost Estimation & Resource Simulator
+                    </h1>
+                    <p class="text-sm text-textSecondary leading-relaxed">
+                        Deterministic parametric modeling, transparent line-item effort formulas, and dynamic what-if delivery simulations.
+                    </p>
+                </div>
+
+                <!-- Feature bullet cards -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex items-start space-x-3 p-3.5 rounded-xl bg-bgCard/60 border border-borderMain/80">
+                        <div class="w-7 h-7 rounded-lg bg-goldPrimary/10 border border-goldPrimary/20 flex items-center justify-center text-goldPrimary shrink-0 mt-0.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-textPrimary">Parametric Sizing Engine</p>
+                            <p class="text-[11px] text-textSecondary mt-0.5">Transparent line-item effort formulas and blended engineering rates (₹2,500/hr).</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-3 p-3.5 rounded-xl bg-bgCard/60 border border-borderMain/80">
+                        <div class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-textPrimary">What-If Velocity Modeling</p>
+                            <p class="text-[11px] text-textSecondary mt-0.5">Interactive headcount sliders to model timelines, costs, and sprint milestones.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start space-x-3 p-3.5 rounded-xl bg-bgCard/60 border border-borderMain/80">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-xs font-semibold text-textPrimary">FastAPI & JWT Auth Compatible</p>
+                            <p class="text-[11px] text-textSecondary mt-0.5">Real bearer authentication with graceful offline demo session fallback.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2 pt-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-[11px] text-textSecondary font-mono" id="auth-backend-status-text">Backend API Ready • Auto-adaptive</span>
+                </div>
+            </div>
+
+            <!-- Right Auth Card -->
+            <div class="lg:col-span-7 max-w-xl mx-auto w-full">
+                <div class="p-6 sm:p-8 rounded-2xl bg-bgCard/95 border border-borderMain shadow-2xl backdrop-blur-xl relative">
+                    
+                    <!-- Top row in card: Mobile logo + Skip/Guest button -->
+                    <div class="flex items-center justify-between pb-5 border-b border-borderMain mb-6">
+                        <div class="flex items-center space-x-2 lg:hidden">
+                            <div class="w-7 h-7 rounded-lg bg-goldPrimary flex items-center justify-center text-bgMain font-bold text-xs">
+                                TB
+                            </div>
+                            <span class="font-bold text-sm text-textPrimary">TallyBuild AI</span>
+                        </div>
+                        <div class="hidden lg:block text-xs font-medium text-textSecondary">
+                            Enterprise Access Portal
+                        </div>
+                        <button type="button" onclick="continueAsGuest()" class="text-xs font-semibold text-goldPrimary hover:text-goldHighlight flex items-center space-x-1 transition-colors px-2.5 py-1 rounded-lg hover:bg-goldPrimary/10">
+                            <span>Skip to Demo</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- Quick 1-Click Demo Profiles (For evaluators & testers) -->
+                    <div class="mb-6 p-3.5 rounded-xl bg-bgElevated/70 border border-goldPrimary/20">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] uppercase font-bold tracking-wider text-goldPrimary flex items-center gap-1.5">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                1-Click Instant Demo Login
+                            </span>
+                            <span class="text-[10px] text-textSecondary">Evaluator Shortcuts</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button type="button" onclick="quickDemoLogin('architect')" class="p-2 rounded-lg bg-bgCard hover:bg-bgElevated border border-borderMain hover:border-goldPrimary/50 text-left transition-all group flex items-center space-x-2.5">
+                                <div class="w-7 h-7 rounded bg-goldPrimary/15 text-goldPrimary flex items-center justify-center text-xs font-bold shrink-0 group-hover:scale-105 transition-transform">
+                                    AK
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-semibold text-textPrimary group-hover:text-goldPrimary transition-colors truncate">Amrutkumar V</p>
+                                    <p class="text-[10px] text-textSecondary truncate">Lead Solutions Architect</p>
+                                </div>
+                            </button>
+
+                            <button type="button" onclick="quickDemoLogin('executive')" class="p-2 rounded-lg bg-bgCard hover:bg-bgElevated border border-borderMain hover:border-goldPrimary/50 text-left transition-all group flex items-center space-x-2.5">
+                                <div class="w-7 h-7 rounded bg-blue-500/15 text-blue-400 flex items-center justify-center text-xs font-bold shrink-0 group-hover:scale-105 transition-transform">
+                                    PS
+                                </div>
+                                <div class="min-w-0">
+                                    <p class="text-xs font-semibold text-textPrimary group-hover:text-blue-400 transition-colors truncate">Priya Sharma</p>
+                                    <p class="text-[10px] text-textSecondary truncate">VP Enterprise Architecture</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tabs: Sign In / Create Account -->
+                    <div class="flex items-center space-x-1 p-1 bg-bgElevated rounded-xl border border-borderMain mb-6">
+                        <button type="button" id="tab-btn-signin" onclick="switchAuthTab('signin')" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all bg-goldPrimary text-bgMain shadow-sm">
+                            Sign In
+                        </button>
+                        <button type="button" id="tab-btn-register" onclick="switchAuthTab('register')" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-textSecondary hover:text-textPrimary">
+                            Create Account
+                        </button>
+                    </div>
+
+                    <!-- SIGN IN FORM -->
+                    <form id="form-auth-signin" onsubmit="handleSignInSubmit(event)" class="space-y-4">
+                        <div>
+                            <label for="signin-email" class="block text-xs font-medium text-textSecondary mb-1.5">Work Email Address</label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-textSecondary">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206"></path></svg>
+                                </div>
+                                <input type="email" id="signin-email" required placeholder="architect@tallybuild.ai" value="architect@tallybuild.ai" class="w-full pl-9 pr-3 py-2.5 bg-bgElevated border border-borderMain rounded-lg text-sm text-textPrimary placeholder:text-textSecondary/50 focus:border-goldPrimary focus:ring-1 focus:ring-goldPrimary outline-none transition-colors">
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1.5">
+                                <label for="signin-password" class="block text-xs font-medium text-textSecondary">Password</label>
+                                <button type="button" onclick="showForgotPasswordHelp()" class="text-[11px] text-textSecondary hover:text-goldPrimary transition-colors">Forgot password?</button>
+                            </div>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-textSecondary">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                </div>
+                                <input type="password" id="signin-password" required placeholder="••••••••" value="demo12345" class="w-full pl-9 pr-10 py-2.5 bg-bgElevated border border-borderMain rounded-lg text-sm text-textPrimary placeholder:text-textSecondary/50 focus:border-goldPrimary focus:ring-1 focus:ring-goldPrimary outline-none transition-colors">
+                                <button type="button" onclick="togglePasswordVisibility('signin-password', 'eye-signin')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-textSecondary hover:text-textPrimary transition-colors" title="Toggle password visibility">
+                                    <svg id="eye-signin" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1">
+                            <label class="flex items-center space-x-2 cursor-pointer select-none">
+                                <input type="checkbox" id="signin-remember" checked class="w-4 h-4 rounded bg-bgElevated border-borderMain accent-goldPrimary cursor-pointer">
+                                <span class="text-xs text-textSecondary">Remember this device</span>
+                            </label>
+                            <span class="text-[11px] text-textSecondary/70">Encrypted JWT Session</span>
+                        </div>
+
+                        <!-- Error Banner (Hidden by default) -->
+                        <div id="signin-error" class="hidden p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs"></div>
+
+                        <button type="submit" id="btn-submit-signin" class="w-full py-2.5 px-4 rounded-lg bg-goldPrimary hover:bg-goldHighlight text-bgMain font-semibold text-sm transition-all shadow-md shadow-goldPrimary/20 flex items-center justify-center space-x-2">
+                            <span>Sign In to Workspace</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </button>
+                    </form>
+
+                    <!-- REGISTER FORM (Hidden by default) -->
+                    <form id="form-auth-register" onsubmit="handleRegisterSubmit(event)" class="space-y-3.5 hidden">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="reg-name" class="block text-xs font-medium text-textSecondary mb-1">Full Name</label>
+                                <input type="text" id="reg-name" required placeholder="Alex Morgan" class="w-full px-3 py-2 bg-bgElevated border border-borderMain rounded-lg text-sm text-textPrimary placeholder:text-textSecondary/50 focus:border-goldPrimary focus:ring-1 focus:ring-goldPrimary outline-none transition-colors">
+                            </div>
+                            <div>
+                                <label for="reg-email" class="block text-xs font-medium text-textSecondary mb-1">Work Email</label>
+                                <input type="email" id="reg-email" required placeholder="alex@company.com" class="w-full px-3 py-2 bg-bgElevated border border-borderMain rounded-lg text-sm text-textPrimary placeholder:text-textSecondary/50 focus:border-goldPrimary focus:ring-1 focus:ring-goldPrimary outline-none transition-colors">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="reg-org" class="block text-xs font-medium text-textSecondary mb-1">Organization</label>
+                                <input type="text" id="reg-org" required placeholder="Acme Software Labs" class="w-full px-3 py-2 bg-bgElevated border border-borderMain rounded-lg text-sm text-textPrimary placeholder:text-textSecondary/50 focus:border-goldPrimary focus:ring-1 focus:ring-goldPrimary outline-none transition-colors">
+                            </div>
+                            <div>
+                                <label for="reg-role" class="block text-xs font-medium text-textSecondary mb-1">Role / Job Title</label>
+                                <select id="reg-role" class="w-full px-3 py-2 bg-bgElevated border border-borderMain rounded-lg text-sm text-textPrimary focus:border-goldPrimary focus:ring-1 focus:ring-goldPrimary outline-none transition-colors">
+                                    <option value="Lead Solutions Architect">Lead Solutions Architect</option>
+                                    <option value="Principal Cost Estimator">Principal Cost Estimator</option>
+                                    <option value="VP Enterprise Engineering">VP Enterprise Engineering</option>
+                                    <option value="Product Manager">Product Manager</option>
+                                    <option value="Commercial Director">Commercial Director</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label for="reg-currency" class="block text-xs font-medium text-textSecondary mb-1">Base Currency</label>
+                                <select id="reg-currency" class="w-full px-3 py-2 bg-bgElevated border border-borderMain rounded-lg text-sm text-textPrimary focus:border-goldPrimary focus:ring-1 focus:ring-goldPrimary outline-none transition-colors">
+                                    <option value="INR">INR (₹ - Indian Rupee)</option>
+                                    <option value="USD">USD ($ - US Dollar)</option>
+                                    <option value="EUR">EUR (€ - Euro)</option>
+                                    <option value="GBP">GBP (£ - British Pound)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="reg-password" class="block text-xs font-medium text-textSecondary mb-1">Password</label>
+                                <div class="relative">
+                                    <input type="password" id="reg-password" required minlength="6" placeholder="Min 6 characters" class="w-full pl-3 pr-9 py-2 bg-bgElevated border border-borderMain rounded-lg text-sm text-textPrimary placeholder:text-textSecondary/50 focus:border-goldPrimary focus:ring-1 focus:ring-goldPrimary outline-none transition-colors">
+                                    <button type="button" onclick="togglePasswordVisibility('reg-password', 'eye-reg')" class="absolute inset-y-0 right-0 pr-2.5 flex items-center text-textSecondary hover:text-textPrimary transition-colors" title="Toggle password visibility">
+                                        <svg id="eye-reg" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Error Banner (Hidden by default) -->
+                        <div id="reg-error" class="hidden p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-xs"></div>
+
+                        <button type="submit" id="btn-submit-register" class="w-full py-2.5 px-4 rounded-lg bg-goldPrimary hover:bg-goldHighlight text-bgMain font-semibold text-sm transition-all shadow-md shadow-goldPrimary/20 flex items-center justify-center space-x-2 mt-2">
+                            <span>Register & Access Workspace</span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </button>
+                    </form>
+
+                    <!-- Footer options -->
+                    <div class="mt-6 pt-5 border-t border-borderMain flex flex-col sm:flex-row items-center justify-between text-xs text-textSecondary gap-2">
+                        <span>Domain 4C Hackfest Evaluation Build</span>
+                        <button type="button" onclick="continueAsGuest()" class="hover:text-goldPrimary transition-colors flex items-center gap-1 font-medium">
+                            <span>Continue as Guest Mode</span>
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================================================================== -->
+    <!-- USER PROFILE & ACCOUNT MODAL                                               -->
+    <!-- ========================================================================== -->
+    <div id="account-modal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 animate-fade-in" onclick="if(event.target === this) closeAccountModal()">
+        <div class="w-full max-w-md bg-bgCard border border-borderMain rounded-2xl shadow-2xl p-6 space-y-6 relative animate-slide-up">
+            
+            <div class="flex items-center justify-between pb-4 border-b border-borderMain">
+                <h3 class="font-bold text-base text-textPrimary flex items-center gap-2">
+                    <svg class="w-5 h-5 text-goldPrimary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    User Profile & Security
+                </h3>
+                <button onclick="closeAccountModal()" class="text-textSecondary hover:text-textPrimary p-1 rounded-lg hover:bg-bgElevated transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- Profile Summary Card -->
+            <div class="p-4 rounded-xl bg-bgElevated border border-borderMain flex items-center space-x-4">
+                <div id="modal-user-avatar" class="w-12 h-12 rounded-xl bg-goldPrimary/15 border border-goldPrimary/30 text-goldHighlight font-bold text-base flex items-center justify-center shrink-0">
+                    TB
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p id="modal-user-name" class="font-semibold text-sm text-textPrimary truncate">Enterprise Lead</p>
+                    <p id="modal-user-email" class="text-xs text-textSecondary truncate">pro@tallybuild.ai</p>
+                    <span id="modal-user-badge" class="inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-goldPrimary/10 text-goldPrimary border border-goldPrimary/20 mt-1">
+                        Active Session
+                    </span>
+                </div>
+            </div>
+
+            <!-- Account Details Table -->
+            <div class="space-y-2.5 text-xs">
+                <div class="flex items-center justify-between py-2 border-b border-borderMain/60">
+                    <span class="text-textSecondary">Organization</span>
+                    <span id="modal-user-org" class="font-medium text-textPrimary">TallyBuild Engineering Labs</span>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b border-borderMain/60">
+                    <span class="text-textSecondary">Role / Designation</span>
+                    <span id="modal-user-role" class="font-medium text-textPrimary">Lead Solutions Architect</span>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b border-borderMain/60">
+                    <span class="text-textSecondary">Currency Standard</span>
+                    <span id="modal-user-currency" class="font-medium text-textPrimary">INR (₹)</span>
+                </div>
+                <div class="flex items-center justify-between py-2 border-b border-borderMain/60">
+                    <span class="text-textSecondary">Auth State</span>
+                    <span class="font-medium text-emerald-400 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Bearer JWT Authenticated
+                    </span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="space-y-2 pt-2">
+                <button onclick="closeAccountModal(); showAuthPage();" class="w-full py-2.5 px-4 rounded-lg bg-bgElevated hover:bg-borderMain border border-borderMain text-xs font-semibold text-textPrimary transition-colors flex items-center justify-center space-x-2">
+                    <svg class="w-4 h-4 text-goldPrimary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                    <span>Switch User or Sign In with Another Account</span>
+                </button>
+
+                <button onclick="handleSignOut()" class="w-full py-2.5 px-4 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-xs font-semibold text-red-400 transition-colors flex items-center justify-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span>Sign Out of Workspace</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="flex h-screen w-screen overflow-hidden">
+
+        <!-- Mobile Sidebar Backdrop -->
+        <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/60 z-30 hidden md:hidden transition-opacity backdrop-blur-sm"></div>
+
+        <!-- Left Sidebar -->
+        <aside id="sidebar" class="fixed md:static inset-y-0 left-0 z-40 w-72 bg-bgSidebar border-r border-borderMain flex flex-col transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+            
+            <!-- Brand Header -->
+            <div class="h-16 px-6 border-b border-borderMain flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-3 cursor-pointer group" onclick="switchTab('ai-estimator')">
+                    <div class="w-8 h-8 rounded-lg bg-goldPrimary flex items-center justify-center text-bgMain transition-transform group-hover:scale-105">
+                        <svg class="w-5 h-5 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-base tracking-tight text-textPrimary flex items-center gap-1.5">
+                            TallyBuild <span class="text-[10px] px-1.5 py-0.5 rounded-sm bg-goldPrimary/10 text-goldPrimary border border-goldPrimary/20 font-semibold uppercase tracking-wider">AI</span>
+                        </h1>
+                    </div>
+                </div>
+                <button onclick="toggleMobileSidebar()" class="md:hidden text-textSecondary hover:text-textPrimary p-1">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <!-- New Estimation Button -->
+            <div class="px-5 py-5">
+                <button onclick="startNewEstimation()" class="w-full py-2.5 px-4 bg-white text-bgMain hover:bg-gray-100 font-semibold rounded-lg flex items-center justify-center space-x-2 transition-colors text-sm shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                    <span>New Estimate</span>
+                </button>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+                <p class="px-3 text-[10px] font-semibold tracking-wider text-textSecondary uppercase mb-2 mt-2">Workspace</p>
+                
+                <a href="#estimator" onclick="switchTab('ai-estimator')" id="nav-ai-estimator" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors bg-bgElevated text-goldPrimary">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                    <span>AI Estimator</span>
+                </a>
+
+                <a href="#estimates" onclick="switchTab('my-estimates')" id="nav-my-estimates" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-textSecondary hover:text-textPrimary hover:bg-bgCard">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    <span>Archive</span>
+                    <span id="estimates-count-badge" class="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-borderMain text-textSecondary font-semibold">0</span>
+                </a>
+
+                <p class="px-3 text-[10px] font-semibold tracking-wider text-textSecondary uppercase mb-2 mt-6">Analytics</p>
+
+                <a href="#comparison" onclick="switchTab('software-comparison')" id="nav-software-comparison" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-textSecondary hover:text-textPrimary hover:bg-bgCard">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <span>Cost Comparison</span>
+                </a>
+
+                <a href="#whatif" onclick="switchTab('what-if')" id="nav-what-if" class="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-textSecondary hover:text-textPrimary hover:bg-bgCard">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    <span>What-If Simulator</span>
+                </a>
+
+                <p class="px-3 text-[10px] font-semibold tracking-wider text-textSecondary uppercase mb-2 mt-6">Authentication</p>
+
+                <button onclick="openAuthModal()" id="nav-login-page" class="w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-textSecondary hover:text-textPrimary hover:bg-bgCard text-left">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                    <span>Login & Profiles</span>
+                </button>
+
+                <div class="pt-6">
+                    <p class="px-3 text-[10px] font-semibold tracking-wider text-textSecondary uppercase mb-2">Recent Reports</p>
+                    <div id="sidebar-history-list" class="space-y-1">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+            </nav>
+
+            <!-- User Profile Section -->
+            <div class="p-4 border-t border-borderMain flex items-center justify-between shrink-0 bg-bgCard/30" id="sidebar-user-section">
+                <button onclick="openAccountModal()" class="flex items-center space-x-3 min-w-0 text-left hover:opacity-90 transition-opacity flex-1 group">
+                    <div id="user-avatar-badge" class="w-8 h-8 rounded-full bg-goldPrimary/15 border border-goldPrimary/30 flex items-center justify-center text-goldHighlight font-bold text-xs shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                        TB
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p id="user-name-display" class="text-xs font-semibold text-textPrimary leading-none truncate group-hover:text-goldHighlight transition-colors">Enterprise Lead</p>
+                        <p id="user-email-display" class="text-[11px] text-textSecondary mt-1 truncate">pro@tallybuild.ai</p>
+                    </div>
+                </button>
+                <div class="flex items-center space-x-1 shrink-0 ml-2">
+                    <button onclick="openAuthModal()" id="btn-auth-switch" class="p-1.5 rounded-lg text-textSecondary hover:text-textPrimary hover:bg-bgElevated transition-colors" title="Switch User / Login Page">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                    </button>
+                    <button onclick="handleSignOut()" id="btn-auth-signout" class="p-1.5 rounded-lg text-textSecondary hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Sign Out">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col h-screen overflow-hidden bg-bgMain relative">
+            
+            <!-- Top Navigation Bar -->
+            <header class="h-16 border-b border-borderMain glass-header px-6 flex items-center justify-between z-20 shrink-0">
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden text-textSecondary hover:text-textPrimary">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                    <h2 id="current-section-title" class="font-semibold text-sm text-textPrimary flex items-center gap-2.5">
+                        Interactive Estimator
+                    </h2>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <!-- Live Backend Status Pill -->
+                    <div id="backend-status-badge" class="flex items-center space-x-2 px-2.5 py-1 rounded-lg text-[11px] font-medium border border-borderMain bg-bgElevated/50 transition-colors" title="FastAPI Backend Connection State">
+                        <span id="backend-status-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span id="backend-status-text" class="text-textSecondary">Connecting...</span>
+                    </div>
+                    <button onclick="openAccountModal()" id="topbar-user-badge" class="hidden sm:flex items-center space-x-2 px-2.5 py-1 rounded text-[11px] font-medium text-textSecondary border border-borderMain hover:border-goldPrimary/40 hover:bg-bgElevated transition-colors cursor-pointer" title="View Account Details">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        <span id="topbar-user-name">Signed In</span>
+                    </button>
+                    <button onclick="openAuthModal()" id="btn-topbar-login" class="px-3 py-1.5 rounded text-[12px] font-medium text-textSecondary hover:text-textPrimary border border-borderMain hover:bg-bgElevated transition-colors flex items-center space-x-1.5" title="Login or Switch Account">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        <span>Login / Account</span>
+                    </button>
+                    <button onclick="exportCurrentSession()" class="px-3 py-1.5 rounded text-[12px] font-medium text-textSecondary hover:text-textPrimary border border-borderMain hover:bg-bgElevated transition-colors flex items-center space-x-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span>Export Data</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Workspace Views Container -->
+            <div class="flex-1 flex overflow-hidden relative">
+
+                <!-- TAB 1: AI ESTIMATOR VIEW -->
+                <div id="view-ai-estimator" class="flex-1 flex flex-col lg:flex-row h-full overflow-hidden w-full">
+                    
+                    <!-- Left/Center: Conversation Area -->
+                    <div class="flex-1 flex flex-col h-full overflow-hidden bg-bgMain relative">
+                        
+                        <!-- Conversation Scroll Area -->
+                        <div id="chat-scroll-area" class="flex-1 overflow-y-auto p-6 md:p-10 pb-32">
+                            
+                            <!-- Welcome Hero / Initial State -->
+                            <div id="welcome-hero" class="max-w-3xl mx-auto text-center py-10 sm:py-16 space-y-4 animate-fade-in">
+                                <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight text-textPrimary">Initiate Software Estimate</h1>
+                                <p class="text-sm sm:text-base text-textSecondary max-w-xl mx-auto leading-relaxed">
+                                    Describe your software requirements. The analytical engine will generate a detailed feature breakdown and professional cost projection.
+                                </p>
+
+                                <!-- Suggestion Cards -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-8 text-left">
+                                    <button onclick="selectSuggestion('SaaS Platform')" class="p-5 rounded-xl bg-bgCard border border-borderMain hover:border-goldPrimary/50 transition-colors text-left group">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-[10px] font-semibold text-textSecondary uppercase tracking-widest group-hover:text-goldPrimary transition-colors">Template 01</span>
+                                            <svg class="w-4 h-4 text-textSecondary group-hover:text-goldPrimary transition-transform transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                        </div>
+                                        <h3 class="font-medium text-base text-textPrimary">B2B SaaS Platform</h3>
+                                        <p class="text-xs text-textSecondary mt-1 leading-relaxed">Multi-tenant architecture, RBAC, subscription billing, and reporting dashboards.</p>
+                                    </button>
+
+                                    <button onclick="selectSuggestion('E-Commerce App')" class="p-5 rounded-xl bg-bgCard border border-borderMain hover:border-goldPrimary/50 transition-colors text-left group">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-[10px] font-semibold text-textSecondary uppercase tracking-widest group-hover:text-goldPrimary transition-colors">Template 02</span>
+                                            <svg class="w-4 h-4 text-textSecondary group-hover:text-goldPrimary transition-transform transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                        </div>
+                                        <h3 class="font-medium text-base text-textPrimary">E-Commerce Application</h3>
+                                        <p class="text-xs text-textSecondary mt-1 leading-relaxed">Cross-platform mobile apps with secure payments and inventory synchronization.</p>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Chat Messages Stream -->
+                            <div id="chat-messages" class="max-w-3xl mx-auto space-y-6">
+                                <!-- Dynamic messages injected here -->
+                            </div>
+                        </div>
+
+                        <!-- Chat Input Composer -->
+                        <div class="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-bgMain via-bgMain/95 to-transparent">
+                            <div class="max-w-3xl mx-auto">
+                                <form id="chat-form" onsubmit="handleChatSubmit(event)" class="relative flex items-end bg-bgCard border border-borderMain focus-within:border-goldPrimary/60 rounded-xl p-1.5 shadow-lg transition-colors">
+                                    <textarea 
+                                        id="chat-input" 
+                                        rows="1" 
+                                        placeholder="Enter architectural requirements..." 
+                                        class="w-full bg-transparent text-textPrimary placeholder-textSecondary text-sm px-4 py-3 focus:outline-none resize-none max-h-32"
+                                        onkeydown="handleKeyDown(event)"
+                                        oninput="autoResizeTextarea(this)"
+                                    ></textarea>
+                                    <button 
+                                        type="submit" 
+                                        id="send-btn"
+                                        class="mb-1 mr-1 p-2 rounded-lg bg-white hover:bg-gray-200 text-bgMain transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <svg class="w-5 h-5 transform rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                                    </button>
+                                </form>
+                                <div class="flex items-center justify-between px-1 pt-2.5 text-[10px] text-textSecondary">
+                                    <span>Press <kbd class="px-1.5 py-0.5 rounded border border-borderMain font-mono mx-0.5">Enter ↵</kbd> to submit</span>
+                                    <span class="text-goldPrimary">Data generated is illustrative</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Context Panel (Live Summary) -->
+                    <aside class="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-borderMain bg-bgSidebar flex flex-col h-auto lg:h-full overflow-y-auto shrink-0 z-10">
+                        <div class="p-6 space-y-8">
+                            
+                            <!-- Data Collection Status -->
+                            <div>
+                                <div class="flex items-center justify-between mb-4">
+                                    <h3 class="font-medium text-xs text-textPrimary uppercase tracking-widest">Scope Definition</h3>
+                                    <span id="completeness-badge" class="text-[10px] font-semibold px-2 py-0.5 rounded bg-bgElevated text-textSecondary border border-borderMain">0% Ready</span>
+                                </div>
+                                <div class="space-y-1.5 text-sm">
+                                    <div class="flex justify-between items-center py-2 border-b border-borderMain">
+                                        <span class="text-textSecondary">Software Type</span>
+                                        <span id="summary-type" class="font-medium text-textPrimary text-right">Pending</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2 border-b border-borderMain">
+                                        <span class="text-textSecondary">Platform</span>
+                                        <span id="summary-platform" class="font-medium text-textPrimary text-right">Pending</span>
+                                    </div>
+                                    <div class="flex justify-between items-center py-2 border-b border-borderMain">
+                                        <span class="text-textSecondary">Complexity</span>
+                                        <span id="summary-complexity" class="font-medium text-textPrimary text-right">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Readiness Checklist -->
+                            <div>
+                                <h4 class="font-medium text-[10px] text-textSecondary uppercase tracking-widest mb-3">Estimation Criteria</h4>
+                                <div id="checklist-container" class="space-y-2">
+                                    <!-- Injected via JS -->
+                                </div>
+                            </div>
+
+                            <!-- Action Button -->
+                            <div id="generate-estimation-action" class="hidden pt-4">
+                                <button onclick="triggerEstimationCard()" class="w-full py-2.5 px-4 bg-goldPrimary hover:bg-goldHighlight text-bgMain font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                    <span>Generate Analytics Report</span>
+                                </button>
+                            </div>
+                        </div>
+                    </aside>
+                </div>
+
+                <!-- TAB 2: SAVED ESTIMATES -->
+                <div id="view-my-estimates" class="flex-1 flex flex-col h-full overflow-y-auto p-6 md:p-10 hidden bg-bgMain">
+                    <div class="max-w-4xl mx-auto w-full space-y-6 animate-fade-in">
+                        <div class="flex flex-col sm:flex-row sm:items-end justify-between pb-4 border-b border-borderMain gap-4">
+                            <div>
+                                <h2 class="text-xl font-semibold tracking-tight text-textPrimary">Report Archive</h2>
+                                <p class="text-sm text-textSecondary mt-1">Review and manage saved software project estimates.</p>
+                            </div>
+                            <button onclick="clearAllEstimates()" class="px-3 py-1.5 rounded bg-bgCard border border-borderMain hover:bg-bgElevated text-xs font-medium text-textPrimary transition-colors">
+                                Clear Archive
+                            </button>
+                        </div>
+                        <div id="saved-estimates-list" class="grid grid-cols-1 gap-3">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: COST COMPARISON -->
+                <div id="view-software-comparison" class="flex-1 flex flex-col h-full overflow-y-auto p-6 md:p-10 hidden bg-bgMain">
+                    <div class="max-w-4xl mx-auto w-full space-y-6 animate-fade-in">
+                        <div class="pb-4 border-b border-borderMain">
+                            <h2 class="text-xl font-semibold tracking-tight text-textPrimary">Comparative Cost Analytics</h2>
+                            <p class="text-sm text-textSecondary mt-1">Analyze relative expenditure across multiple architectural approaches.</p>
+                        </div>
+                        <div id="comparison-content" class="w-full">
+                            <!-- Chart goes here via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: WHAT-IF ANALYSIS -->
+                <div id="view-what-if" class="flex-1 flex flex-col h-full overflow-y-auto p-6 md:p-10 hidden bg-bgMain">
+                    <div class="max-w-5xl mx-auto w-full space-y-6 animate-fade-in">
+                        <div class="pb-4 border-b border-borderMain">
+                            <h2 class="text-xl font-semibold tracking-tight text-textPrimary">Resource Simulator</h2>
+                            <p class="text-sm text-textSecondary mt-1">Dynamically model the impact of team sizing on cost and delivery velocity based on your latest baseline estimate.</p>
+                        </div>
+                        
+                        <div id="whatif-content" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        /* -------------------------------------------------------------------------- */
+        /* Application Configuration & State                                          */
+        /* -------------------------------------------------------------------------- */
+        
+        // Polished Data Visualization Palette
+        const chartColors = [
+            '#E7B447', // Gold
+            '#3B82F6', // Muted Blue
+            '#10B981', // Emerald
+            '#8B5CF6', // Violet
+            '#F97316', // Orange
+            '#06B6D4'  // Cyan
+        ];
+
+        let appState = {
+            currentTab: 'ai-estimator',
+            projectType: null,
+            platform: null,
+            complexity: null,
+            stepIndex: 0,
+            chatHistory: [],
+            isEstimatingReady: false,
+            reportGenerated: false,
+            savedEstimates: JSON.parse(localStorage.getItem('tallybuild_saved_estimates') || '[]'),
+            rate: 2500, // Blended rate in INR
+            isBackendConnected: false
+        };
+
+        const chartInstances = {};
+
+        // Unified API Client with automatic proxy / direct origin detection
+        const API = {
+            async getBaseUrl() {
+                try {
+                    const res = await fetch('/api/v1/health', { signal: AbortSignal.timeout(1200) });
+                    if (res.ok) return '';
+                } catch (e) {}
+                return 'http://127.0.0.1:8000';
+            },
+            async fetch(endpoint, options = {}) {
+                const base = await API.getBaseUrl();
+                const url = base + endpoint;
+                const token = localStorage.getItem('tallybuild_auth_token');
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...(options.headers || {})
+                };
+                if (token && !headers['Authorization']) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                return fetch(url, { ...options, headers });
+            }
+        };
+
+        async function checkBackendHealth() {
+            const badge = document.getElementById('backend-status-badge');
+            const dot = document.getElementById('backend-status-dot');
+            const text = document.getElementById('backend-status-text');
+            try {
+                const res = await API.fetch('/api/v1/health', { signal: AbortSignal.timeout(2000) });
+                if (res.ok) {
+                    const data = await res.json();
+                    appState.isBackendConnected = true;
+                    if (dot) dot.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50 animate-pulse";
+                    if (text) {
+                        text.className = "text-emerald-400 font-medium";
+                        text.innerText = "Live API: Connected";
+                    }
+                    if (badge) badge.title = `FastAPI v${data.version || '4.0.0'} online • SQLite & ML Engine active`;
+                    return true;
+                }
+            } catch (e) {}
+            appState.isBackendConnected = false;
+            if (dot) dot.className = "w-2 h-2 rounded-full bg-amber-400";
+            if (text) {
+                text.className = "text-amber-400 font-medium";
+                text.innerText = "Offline Demo Mode";
+            }
+            if (badge) badge.title = "Backend unreachable (127.0.0.1:8000). Running in client-side simulation mode.";
+            return false;
+        }
+
+        async function fetchSavedEstimates() {
+            try {
+                const res = await API.fetch('/api/v1/estimates', { signal: AbortSignal.timeout(3000) });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data.estimates) && data.estimates.length > 0) {
+                        const mapped = data.estimates.map(e => ({
+                            id: e.id,
+                            date: e.createdAt ? new Date(e.createdAt).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'),
+                            type: e.projectName || 'Software Project',
+                            platform: e.category || 'Platform',
+                            cost: e.estimatedAmount || 0,
+                            timeline: (e.durationWeeks || 8) + " Weeks",
+                            origin: e.origin || 'database',
+                            status: e.status || 'Active',
+                            pertLow: e.pertLow,
+                            pertHigh: e.pertHigh,
+                            confidenceScore: e.confidenceScore
+                        }));
+                        appState.savedEstimates = mapped;
+                        localStorage.setItem('tallybuild_saved_estimates', JSON.stringify(mapped));
+                        renderSidebarHistory();
+                        updateEstimatesBadge();
+                        return;
+                    }
+                }
+            } catch (e) {}
+            appState.savedEstimates = JSON.parse(localStorage.getItem('tallybuild_saved_estimates') || '[]');
+            renderSidebarHistory();
+            updateEstimatesBadge();
+        }
+
+        const conversationFlow = [
+            {
+                question: "Welcome to TallyBuild AI. To build an accurate software cost model, please specify the primary function or architectural pattern of the application.",
+                options: ["E-Commerce Platform", "Fintech Dashboard", "Enterprise SaaS", "Custom Marketplace"]
+            },
+            {
+                question: "Understood. Which target platforms must this architecture support?",
+                options: ["Web Only (React/Next)", "iOS & Android (Flutter)", "Web + Mobile Apps", "Cloud API Services"]
+            },
+            {
+                question: "Finally, what level of authentication and role management is required?",
+                options: ["Standard Auth (Email/OAuth)", "Role-based Access (RBAC)", "Enterprise SSO + Audit Logs"]
+            }
+        ];
+
+        // Chart.js Global Defaults for Premium Dark Theme
+        Chart.defaults.color = '#97A2B3';
+        Chart.defaults.font.family = 'Inter, sans-serif';
+        Chart.defaults.borderColor = '#273142';
+
+        window.onload = async function() {
+            initAuth();
+            renderSidebarHistory();
+            updateEstimatesBadge();
+            renderInitialGreeting();
+            updateChecklist();
+            await checkBackendHealth();
+            await fetchSavedEstimates();
+        };
+
+        /* -------------------------------------------------------------------------- */
+        /* Navigation & Tabs                                                          */
+        /* -------------------------------------------------------------------------- */
+        
+        function switchTab(tabId) {
+            appState.currentTab = tabId;
+            const tabs = ['ai-estimator', 'my-estimates', 'software-comparison', 'what-if'];
+            
+            tabs.forEach(t => {
+                const viewEl = document.getElementById(`view-${t}`);
+                const navEl = document.getElementById(`nav-${t}`);
+                if (t === tabId) {
+                    viewEl.classList.remove('hidden');
+                    if (navEl) {
+                        navEl.classList.add('bg-bgElevated', 'text-goldPrimary');
+                        navEl.classList.remove('text-textSecondary', 'hover:text-textPrimary', 'hover:bg-bgCard');
+                    }
+                } else {
+                    viewEl.classList.add('hidden');
+                    if (navEl) {
+                        navEl.classList.remove('bg-bgElevated', 'text-goldPrimary');
+                        navEl.classList.add('text-textSecondary', 'hover:text-textPrimary', 'hover:bg-bgCard');
+                    }
+                }
+            });
+
+            const titles = {
+                'ai-estimator': 'Interactive Estimator',
+                'my-estimates': 'Report Archive',
+                'software-comparison': 'Comparative Analytics',
+                'what-if': 'Resource Simulator'
+            };
+            document.getElementById('current-section-title').innerText = titles[tabId] || 'TallyBuild AI';
+            
+            if (tabId === 'my-estimates') renderSavedEstimatesList();
+            if (tabId === 'software-comparison') renderComparisonView();
+            if (tabId === 'what-if') renderWhatIfView();
+            
+            if(window.innerWidth < 768) toggleMobileSidebar();
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* Chat Interface Logic                                                       */
+        /* -------------------------------------------------------------------------- */
+        
+        function renderInitialGreeting() {
+            const chatMessages = document.getElementById('chat-messages');
+            chatMessages.innerHTML = '';
+            const initialMsg = { sender: 'ai', text: conversationFlow[0].question, options: conversationFlow[0].options };
+            appState.chatHistory.push(initialMsg);
+            appendMessageToDOM(initialMsg);
+        }
+
+        function startNewEstimation() {
+            appState.projectType = null;
+            appState.platform = null;
+            appState.complexity = null;
+            appState.stepIndex = 0;
+            appState.chatHistory = [];
+            appState.isEstimatingReady = false;
+            appState.reportGenerated = false;
+
+            document.getElementById('welcome-hero').style.display = 'block';
+            document.getElementById('generate-estimation-action').classList.add('hidden');
+            
+            updateContextPanel();
+            renderInitialGreeting();
+            switchTab('ai-estimator');
+        }
+
+        function selectSuggestion(type) {
+            document.getElementById('welcome-hero').style.display = 'none';
+            addUserMessage(type);
+            processAIResponse(type);
+        }
+
+        function handleChatSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            document.getElementById('welcome-hero').style.display = 'none';
+            addUserMessage(text);
+            input.value = '';
+            input.style.height = 'auto';
+            processAIResponse(text);
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleChatSubmit(e);
+            }
+        }
+
+        function autoResizeTextarea(el) {
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight) + 'px';
+        }
+
+        function addUserMessage(text) {
+            const msg = { sender: 'user', text };
+            appState.chatHistory.push(msg);
+            
+            const div = document.createElement('div');
+            div.className = 'flex justify-end animate-fade-in mb-4';
+            div.innerHTML = `
+                <div class="max-w-xl bg-bgElevated border border-borderMain text-textPrimary px-4 py-3 rounded-xl rounded-tr-sm text-sm">
+                    ${escapeHTML(text)}
+                </div>
+            `;
+            document.getElementById('chat-messages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function appendMessageToDOM(msg) {
+            const div = document.createElement('div');
+            div.className = 'flex items-start space-x-3 animate-fade-in mb-6';
+            
+            let optionsHTML = '';
+            if (msg.options && msg.options.length > 0) {
+                optionsHTML = `<div class="flex flex-wrap gap-2 mt-3">`;
+                msg.options.forEach(opt => {
+                    optionsHTML += `<button onclick="selectOption('${escapeHTML(opt)}')" class="px-3 py-1.5 rounded-lg bg-bgCard hover:bg-bgElevated border border-borderMain hover:border-textSecondary text-xs font-medium text-textSecondary transition-colors">${escapeHTML(opt)}</button>`;
+                });
+                optionsHTML += `</div>`;
+            }
+
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded bg-bgElevated border border-borderMain flex items-center justify-center flex-shrink-0 text-textSecondary font-semibold text-[10px] tracking-wider uppercase">AI</div>
+                <div class="max-w-xl text-sm text-textPrimary pt-1.5 leading-relaxed">
+                    <p>${escapeHTML(msg.text)}</p>
+                    ${optionsHTML}
+                </div>
+            `;
+            document.getElementById('chat-messages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function selectOption(optText) {
+            // Disable existing option buttons to prevent multiple clicks
+            const btns = document.querySelectorAll('#chat-messages button');
+            btns.forEach(btn => btn.disabled = true);
+            
+            addUserMessage(optText);
+            processAIResponse(optText);
+        }
+
+        function processAIResponse(userText) {
+            showTypingIndicator();
+            
+            if (appState.stepIndex === 0) appState.projectType = userText;
+            else if (appState.stepIndex === 1) appState.platform = userText;
+            else if (appState.stepIndex === 2) appState.complexity = userText;
+
+            setTimeout(() => {
+                removeTypingIndicator();
+                appState.stepIndex++;
+                updateContextPanel();
+
+                if (appState.stepIndex < conversationFlow.length) {
+                    const nextQ = conversationFlow[appState.stepIndex];
+                    const aiMsg = { sender: 'ai', text: nextQ.question, options: nextQ.options };
+                    appState.chatHistory.push(aiMsg);
+                    appendMessageToDOM(aiMsg);
+                } else {
+                    appState.isEstimatingReady = true;
+                    updateContextPanel();
+                    const completionMsg = {
+                        sender: 'ai',
+                        text: "Data collection complete. The analytical engine has processed your parameters. Please click 'Generate Analytics Report' to view the detailed breakdown and insights."
+                    };
+                    appState.chatHistory.push(completionMsg);
+                    appendMessageToDOM(completionMsg);
+                    document.getElementById('generate-estimation-action').classList.remove('hidden');
+                }
+            }, 700);
+        }
+
+        function showTypingIndicator() {
+            const div = document.createElement('div');
+            div.id = 'typing-indicator';
+            div.className = 'flex items-center space-x-3 animate-fade-in mb-6';
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded bg-bgElevated border border-borderMain flex items-center justify-center flex-shrink-0 text-textSecondary font-semibold text-[10px] tracking-wider uppercase">AI</div>
+                <div class="flex items-center space-x-1.5 pt-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-textSecondary/50 animate-bounce"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-textSecondary/50 animate-bounce" style="animation-delay: 0.15s"></span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-textSecondary/50 animate-bounce" style="animation-delay: 0.3s"></span>
+                </div>
+            `;
+            document.getElementById('chat-messages').appendChild(div);
+            scrollToBottom();
+        }
+
+        function removeTypingIndicator() {
+            const el = document.getElementById('typing-indicator');
+            if (el) el.remove();
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* Context Panel Logic                                                        */
+        /* -------------------------------------------------------------------------- */
+        
+        function updateContextPanel() {
+            document.getElementById('summary-type').innerText = appState.projectType || 'Pending';
+            document.getElementById('summary-platform').innerText = appState.platform || 'Pending';
+            document.getElementById('summary-complexity').innerText = appState.complexity || 'Pending';
+            
+            let filled = (appState.projectType ? 1 : 0) + (appState.platform ? 1 : 0) + (appState.complexity ? 1 : 0);
+            let pct = Math.round((filled / 3) * 100);
+            
+            const badge = document.getElementById('completeness-badge');
+            badge.innerText = `${pct}% Ready`;
+            if(pct === 100) {
+                badge.className = "text-[10px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            }
+            updateChecklist();
+        }
+
+        function updateChecklist() {
+            const container = document.getElementById('checklist-container');
+            const items = [
+                { label: 'Architectural Pattern', done: !!appState.projectType },
+                { label: 'Deployment Platforms', done: !!appState.platform },
+                { label: 'Access & Security', done: !!appState.complexity }
+            ];
+            
+            let html = '';
+            items.forEach(item => {
+                html += `
+                    <div class="flex items-center space-x-3 text-xs ${item.done ? 'text-textPrimary' : 'text-textSecondary'} py-1.5 transition-colors">
+                        <div class="w-3.5 h-3.5 rounded-full ${item.done ? 'bg-goldPrimary text-bgMain' : 'border border-borderMain'} flex items-center justify-center text-[8px] font-bold">
+                            ${item.done ? '✓' : ''}
+                        </div>
+                        <span>${item.label}</span>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* Data Generation & Report Engine                                            */
+        /* -------------------------------------------------------------------------- */
+        
+        function generateEstimateData() {
+            const isHeavy = appState.complexity && appState.complexity.includes("Enterprise");
+            const isMobile = appState.platform && (appState.platform.includes("iOS") || appState.platform.includes("Mobile"));
+            
+            const features = [];
+            
+            features.push({ name: isMobile ? "Mobile Interfaces" : "Web Frontend", hours: isHeavy ? 240 : 160 });
+            features.push({ name: "Core API Services", hours: isHeavy ? 300 : 180 });
+            features.push({ name: "Database Engineering", hours: isHeavy ? 120 : 80 });
+            features.push({ name: "Security & Access", hours: isHeavy ? 80 : 40 });
+            features.push({ name: "Quality Assurance", hours: isHeavy ? 100 : 60 });
+            features.push({ name: "DevOps & Infrastructure", hours: isHeavy ? 80 : 40 });
+
+            let totalAmount = 0;
+            let totalHours = 0;
+
+            features.forEach(f => {
+                f.rate = appState.rate;
+                f.amount = f.hours * f.rate;
+                totalAmount += f.amount;
+                totalHours += f.hours;
+            });
+
+            // Sort by cost descending and assign color mapping
+            features.sort((a,b) => b.amount - a.amount);
+            
+            features.forEach((f, idx) => {
+                f.percentage = ((f.amount / totalAmount) * 100).toFixed(1);
+                f.color = chartColors[idx % chartColors.length];
+            });
+
+            return {
+                features: features,
+                totalAmount,
+                totalHours,
+                timelineWeeks: Math.ceil(totalHours / (4 * 40)) // Assuming baseline 4 devs
+            };
+        }
+
+        const formatINR = (val) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+
+        async function triggerEstimationCard() {
+            if(appState.reportGenerated) return;
+
+            const actionBtn = document.getElementById('generate-estimation-action');
+            if (actionBtn) {
+                actionBtn.classList.add('opacity-60', 'pointer-events-none');
+                actionBtn.innerText = 'Connecting to FastAPI ML Estimation Engine...';
+            }
+
+            const isHeavy = appState.complexity && appState.complexity.includes("Enterprise");
+            const isMobile = appState.platform && (appState.platform.includes("iOS") || appState.platform.includes("Mobile"));
+            const projectName = (appState.projectType || 'Software') + " Architecture";
+
+            const payload = {
+                projectName: projectName,
+                currency: "INR",
+                personnel: [
+                    { role: isMobile ? "Mobile Interfaces (Flutter/Native)" : "Web Frontend (React/Next)", people: 1, hours: isHeavy ? 240 : 160, hourlyRate: appState.rate },
+                    { role: "Core API Services & Microservices", people: 1, hours: isHeavy ? 300 : 180, hourlyRate: appState.rate },
+                    { role: "Database Engineering & Schemas", people: 1, hours: isHeavy ? 120 : 80, hourlyRate: appState.rate },
+                    { role: "Security, RBAC & SSO Access", people: 1, hours: isHeavy ? 80 : 40, hourlyRate: appState.rate },
+                    { role: "Quality Assurance & Automated Testing", people: 1, hours: isHeavy ? 100 : 60, hourlyRate: appState.rate },
+                    { role: "DevOps, CI/CD & Cloud Infrastructure", people: 1, hours: isHeavy ? 80 : 40, hourlyRate: appState.rate }
+                ],
+                tooling: [
+                    { name: "Dev Tooling, IDEs & GitHub Copilot", amount: 25000 }
+                ],
+                infrastructure: [
+                    { name: "Cloud Staging & Production Hosting", monthlyCost: 15000, months: Math.ceil((isHeavy ? 920 : 560) / 160) }
+                ],
+                other: [
+                    { description: "Contingency & Compliance Assurance Buffer", amount: 35000 }
+                ]
+            };
+
+            let reportData = null;
+
+            // Attempt live backend calculation
+            try {
+                const res = await API.fetch('/api/v1/estimates/calculate', {
+                    method: 'POST',
+                    body: JSON.stringify(payload),
+                    signal: AbortSignal.timeout(5000)
+                });
+                if (res.ok) {
+                    const result = await res.json();
+                    
+                    const features = [];
+                    (result.personnel?.lines || []).forEach(l => {
+                        features.push({
+                            name: l.role,
+                            hours: l.hours * l.people,
+                            rate: l.hourlyRate,
+                            amount: l.cost,
+                            category: 'personnel'
+                        });
+                    });
+                    (result.tooling?.lines || []).forEach(l => {
+                        features.push({
+                            name: l.name,
+                            hours: '-',
+                            rate: '-',
+                            amount: l.cost,
+                            category: 'tooling'
+                        });
+                    });
+                    (result.infrastructure?.lines || []).forEach(l => {
+                        features.push({
+                            name: l.name,
+                            hours: `${l.months} mo`,
+                            rate: `₹${l.monthlyCost}/mo`,
+                            amount: l.cost,
+                            category: 'infrastructure'
+                        });
+                    });
+                    (result.other?.lines || []).forEach(l => {
+                        features.push({
+                            name: l.description,
+                            hours: '-',
+                            rate: '-',
+                            amount: l.cost,
+                            category: 'other'
+                        });
+                    });
+
+                    features.sort((a,b) => b.amount - a.amount);
+                    features.forEach((f, idx) => {
+                        f.percentage = ((f.amount / result.total) * 100).toFixed(1);
+                        f.color = chartColors[idx % chartColors.length];
+                    });
+
+                    const timelineWeeks = result.mlInsights?.estimated_days 
+                        ? Math.ceil(result.mlInsights.estimated_days / 7) 
+                        : Math.ceil((result.totalHours || 600) / 160);
+
+                    reportData = {
+                        features: features,
+                        totalAmount: result.total,
+                        totalHours: result.totalHours || Math.round((result.personnelCost || 0) / appState.rate),
+                        timelineWeeks: timelineWeeks,
+                        mlInsights: result.mlInsights,
+                        assumptions: result.assumptions,
+                        origin: 'api'
+                    };
+                    showToast('Estimate calculated by live FastAPI ML engine');
+                }
+            } catch (e) {
+                console.warn('Live API calculation failed, falling back:', e);
+            }
+
+            if (!reportData) {
+                // Graceful fallback to client-side formula
+                reportData = generateEstimateData();
+                reportData.origin = 'demo';
+                showToast('Backend unavailable: Using offline demo calculation');
+            }
+
+            appState.reportGenerated = true;
+            if (actionBtn) actionBtn.classList.add('hidden');
+            appState.latestReport = reportData;
+            appendReportToDOM(reportData);
+        }
+
+        function appendReportToDOM(data) {
+            const chatMessages = document.getElementById('chat-messages');
+            const reportId = Date.now();
+            const div = document.createElement('div');
+            div.className = 'w-full my-10 animate-slide-up';
+            
+            // Dynamic Table Rows
+            let tableRows = '';
+            data.features.forEach(f => {
+                const hrsDisplay = f.hours === '-' ? '<span class="text-textSecondary/50">—</span>' : `${f.hours} hrs`;
+                const rateDisplay = f.rate === '-' ? '<span class="text-textSecondary/50">—</span>' : (typeof f.rate === 'number' ? `₹${f.rate.toLocaleString('en-IN')}/hr` : f.rate);
+                tableRows += `
+                    <tr class="border-b border-borderMain hover:bg-bgElevated transition-colors">
+                        <td class="py-3 px-4 text-textPrimary flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full block" style="background-color: ${f.color}"></span>
+                            ${f.name}
+                        </td>
+                        <td class="py-3 px-4 text-textSecondary">${hrsDisplay}</td>
+                        <td class="py-3 px-4 text-textSecondary hidden sm:table-cell">${rateDisplay}</td>
+                        <td class="py-3 px-4 text-right text-textPrimary font-medium">${formatINR(f.amount)}</td>
+                        <td class="py-3 px-4 text-right text-textSecondary text-xs w-16">${f.percentage}%</td>
+                    </tr>
+                `;
+            });
+
+            // Dynamic Statistical Insights Calculations
+            const highestFeature = data.features[0];
+            const lowestFeature = data.features[data.features.length - 1];
+            const avgCost = data.totalAmount / data.features.length;
+
+            const isLive = data.origin === 'api';
+            const originBadge = isLive 
+                ? `<span class="text-[10px] px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Live API Enriched</span>`
+                : `<span class="text-[10px] px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30 font-semibold">Offline Demo Calculation</span>`;
+
+            // ML Insights Component
+            let mlCardHTML = '';
+            if (data.mlInsights) {
+                mlCardHTML = `
+                    <div class="p-5 rounded-xl bg-gradient-to-r from-bgElevated via-bgElevated to-bgCard border border-goldPrimary/30 shadow-lg space-y-3.5">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-borderMain/60 pb-3">
+                            <div class="flex items-center space-x-2.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span class="text-xs font-bold text-textPrimary tracking-wide uppercase">FastAPI ML Engine • COCOMO II & Monte-Carlo Sizing</span>
+                            </div>
+                            <span class="text-[11px] font-bold px-2.5 py-0.5 rounded bg-goldPrimary/15 text-goldHighlight border border-goldPrimary/30 w-fit">
+                                ${data.mlInsights.confidence_pct}% Confidence Score (${data.mlInsights.monte_carlo_runs || 2500} Trials)
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs pt-1">
+                            <div class="p-3 rounded-lg bg-bgMain border border-borderMain">
+                                <span class="text-textSecondary text-[10px] uppercase tracking-wider font-medium">P10 (Optimistic Baseline)</span>
+                                <p class="font-bold text-emerald-400 text-sm mt-1">${formatINR(data.mlInsights.p10_cost)}</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-bgMain border border-borderMain">
+                                <span class="text-textSecondary text-[10px] uppercase tracking-wider font-medium">P50 (Median Standard)</span>
+                                <p class="font-bold text-textPrimary text-sm mt-1">${formatINR(data.mlInsights.p50_cost)}</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-bgMain border border-borderMain">
+                                <span class="text-textSecondary text-[10px] uppercase tracking-wider font-medium">P80 (Budget Commitment)</span>
+                                <p class="font-bold text-goldHighlight text-sm mt-1">${formatINR(data.mlInsights.p80_cost)}</p>
+                            </div>
+                            <div class="p-3 rounded-lg bg-bgMain border border-borderMain">
+                                <span class="text-textSecondary text-[10px] uppercase tracking-wider font-medium">P90 (Conservative Cap)</span>
+                                <p class="font-bold text-red-400 text-sm mt-1">${formatINR(data.mlInsights.p90_cost)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Assumptions items
+            let assumptionsHTML = '';
+            if (data.assumptions && data.assumptions.length > 0) {
+                data.assumptions.forEach(a => {
+                    assumptionsHTML += `<p>• ${escapeHTML(a)}</p>`;
+                });
+            } else {
+                assumptionsHTML = `
+                    <p>Calculations utilize a parametric sizing model applying a blended development rate of ₹2,500/hr. Scope excludes external API licensing, server hosting fees, hardware, and post-launch maintenance SLA contracts.</p>
+                    <p>All figures presented are illustrative software estimations based on initial parameters.</p>
+                `;
+            }
+
+            div.innerHTML = `
+                <div class="rounded-xl bg-bgCard border border-borderMain shadow-sm overflow-hidden">
+                    
+                    <!-- A. Report Header -->
+                    <div class="p-6 border-b border-borderMain flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <p class="text-[10px] text-textSecondary uppercase tracking-widest font-semibold">Generated Analytics Report</p>
+                                ${originBadge}
+                            </div>
+                            <h3 class="font-semibold text-lg text-textPrimary">${appState.projectType || 'Software'} Build Projection</h3>
+                        </div>
+                        <button onclick="saveCurrentEstimate(${reportId})" id="save-btn-${reportId}" class="px-4 py-2 rounded bg-white hover:bg-gray-200 text-bgMain text-xs font-semibold transition-colors flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                            <span>Save Estimate</span>
+                        </button>
+                    </div>
+
+                    <div class="p-6 space-y-8">
+                        
+                        <!-- ML Insights Component (if available) -->
+                        ${mlCardHTML}
+
+                        <!-- B. Executive Summary -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="p-4 rounded-lg bg-bgMain border border-borderMain">
+                                <p class="text-[10px] text-textSecondary uppercase tracking-widest font-medium">Total Est. Cost</p>
+                                <p class="text-xl font-semibold text-textPrimary mt-1.5">${formatINR(data.totalAmount)}</p>
+                            </div>
+                            <div class="p-4 rounded-lg bg-bgMain border border-borderMain">
+                                <p class="text-[10px] text-textSecondary uppercase tracking-widest font-medium">Total Effort</p>
+                                <p class="text-xl font-semibold text-textPrimary mt-1.5">${data.totalHours} <span class="text-xs font-normal text-textSecondary ml-0.5">hrs</span></p>
+                            </div>
+                            <div class="p-4 rounded-lg bg-bgMain border border-borderMain">
+                                <p class="text-[10px] text-textSecondary uppercase tracking-widest font-medium">Est. Timeline</p>
+                                <p class="text-xl font-semibold text-textPrimary mt-1.5">${data.timelineWeeks} <span class="text-xs font-normal text-textSecondary ml-0.5">wks</span></p>
+                            </div>
+                            <div class="p-4 rounded-lg bg-bgMain border border-borderMain">
+                                <p class="text-[10px] text-textSecondary uppercase tracking-widest font-medium">Included Modules</p>
+                                <p class="text-xl font-semibold text-textPrimary mt-1.5">${data.features.length}</p>
+                            </div>
+                        </div>
+
+                        <!-- C & D. Graphical Analysis -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            
+                            <!-- C. Donut Chart -->
+                            <div class="flex flex-col">
+                                <h4 class="text-sm font-medium text-textPrimary mb-4">Cost Distribution</h4>
+                                <div class="relative w-full h-64 p-4 rounded-lg bg-bgMain border border-borderMain">
+                                    <canvas id="chart-donut-${reportId}"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- D. Bar Chart -->
+                            <div class="flex flex-col">
+                                <h4 class="text-sm font-medium text-textPrimary mb-4">Cost Breakdown Ranking</h4>
+                                <div class="relative w-full h-64 p-4 rounded-lg bg-bgMain border border-borderMain">
+                                    <canvas id="chart-bar-${reportId}"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- E. Statistical Insights -->
+                        <div>
+                            <h4 class="text-sm font-medium text-textPrimary mb-4">Cost Insights</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="p-4 rounded-lg bg-bgElevated border border-borderMain text-sm text-textSecondary leading-relaxed">
+                                    <strong class="text-textPrimary block mb-1">Primary Cost Driver</strong>
+                                    The <strong>${highestFeature.name}</strong> line requires the most capital, representing <strong class="text-textPrimary">${highestFeature.percentage}%</strong> of total expenditure.
+                                </div>
+                                <div class="p-4 rounded-lg bg-bgElevated border border-borderMain text-sm text-textSecondary leading-relaxed">
+                                    <strong class="text-textPrimary block mb-1">Cost Efficiency</strong>
+                                    The architectural plan spans ${data.features.length} discrete budget lines, with a mean allocation of <strong>${formatINR(avgCost)}</strong>.
+                                </div>
+                                <div class="p-4 rounded-lg bg-bgElevated border border-borderMain text-sm text-textSecondary leading-relaxed">
+                                    <strong class="text-textPrimary block mb-1">Lowest Expenditure</strong>
+                                    <strong>${lowestFeature.name}</strong> accounts for just <strong class="text-textPrimary">${lowestFeature.percentage}%</strong> of the allocation.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- F. Detailed Breakdown Table -->
+                        <div>
+                            <h4 class="text-sm font-medium text-textPrimary mb-4">Detailed Breakdown</h4>
+                            <div class="overflow-x-auto rounded-lg border border-borderMain">
+                                <table class="w-full text-left text-sm whitespace-nowrap">
+                                    <thead class="bg-bgElevated border-b border-borderMain">
+                                        <tr class="text-[10px] uppercase tracking-widest text-textSecondary">
+                                            <th class="py-3 px-4 font-medium">Module / Resource Line</th>
+                                            <th class="py-3 px-4 font-medium">Est. Effort / Metric</th>
+                                            <th class="py-3 px-4 font-medium hidden sm:table-cell">Unit Rate</th>
+                                            <th class="py-3 px-4 font-medium text-right">Amount (INR)</th>
+                                            <th class="py-3 px-4 font-medium text-right w-16">Share</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-borderMain bg-bgMain">
+                                        ${tableRows}
+                                    </tbody>
+                                    <tfoot class="bg-bgElevated border-t border-borderMain">
+                                        <tr>
+                                            <td class="py-3 px-4 font-medium text-textPrimary">Total Project Cost</td>
+                                            <td class="py-3 px-4 text-textSecondary">${data.totalHours} hrs</td>
+                                            <td class="py-3 px-4 hidden sm:table-cell"></td>
+                                            <td class="py-3 px-4 text-right font-semibold text-textPrimary">${formatINR(data.totalAmount)}</td>
+                                            <td class="py-3 px-4 text-right text-textSecondary">100%</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- G. Assumptions & Methodology -->
+                        <div class="pt-6 border-t border-borderMain">
+                            <details class="group">
+                                <summary class="text-xs text-textSecondary font-medium cursor-pointer list-none flex items-center justify-between select-none">
+                                    Methodology & Assumptions
+                                    <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </summary>
+                                <div class="mt-4 text-xs text-textSecondary leading-relaxed space-y-2">
+                                    ${assumptionsHTML}
+                                </div>
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            chatMessages.appendChild(div);
+            scrollToBottom();
+
+            // Initialize Charts
+            setTimeout(() => {
+                initCharts(reportId, data);
+            }, 50);
+        }
+
+        function initCharts(id, data) {
+            const labels = data.features.map(f => f.name);
+            const amounts = data.features.map(f => f.amount);
+            const colors = data.features.map(f => f.color);
+
+            // Plugin to draw total cost in the center of the Donut
+            const centerTextPlugin = {
+                id: 'centerText',
+                beforeDraw: function(chart) {
+                    if (chart.config.type !== 'doughnut') return;
+                    const ctx = chart.ctx;
+                    const chartArea = chart.chartArea;
+                    const centerX = (chartArea.left + chartArea.right) / 2;
+                    const centerY = (chartArea.top + chartArea.bottom) / 2;
+                    
+                    ctx.save();
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    // Format Total text
+                    const totalStr = "₹" + (data.totalAmount / 100000).toFixed(1) + "L";
+                    ctx.font = '600 1.25rem Inter';
+                    ctx.fillStyle = '#F5F7FA';
+                    ctx.fillText(totalStr, centerX, centerY - 6);
+                    
+                    ctx.font = '500 0.65rem Inter';
+                    ctx.fillStyle = '#97A2B3';
+                    ctx.fillText("Total Cost", centerX, centerY + 12);
+                    ctx.restore();
+                }
+            };
+
+            // Donut Chart Config
+            const ctxDonut = document.getElementById(`chart-donut-${id}`).getContext('2d');
+            chartInstances[`donut-${id}`] = new Chart(ctxDonut, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: amounts,
+                        backgroundColor: colors,
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: { 
+                            position: 'right', 
+                            labels: { color: '#97A2B3', boxWidth: 10, usePointStyle: true, padding: 16, font: {size: 11} } 
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` ₹${ctx.raw.toLocaleString('en-IN')} (${data.features[ctx.dataIndex].percentage}%)`
+                            },
+                            backgroundColor: '#161C27', borderColor: '#273142', borderWidth: 1, padding: 10, bodyFont: {size: 12}
+                        }
+                    },
+                    animation: { animateScale: true, animateRotate: true, duration: 1000 }
+                },
+                plugins: [centerTextPlugin]
+            });
+
+            // Bar Chart Config
+            const ctxBar = document.getElementById(`chart-bar-${id}`).getContext('2d');
+            chartInstances[`bar-${id}`] = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Cost (INR)',
+                        data: amounts,
+                        backgroundColor: colors,
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` ₹${ctx.raw.toLocaleString('en-IN')}`
+                            },
+                            backgroundColor: '#161C27', borderColor: '#273142', borderWidth: 1, padding: 10
+                        }
+                    },
+                    scales: {
+                        x: { 
+                            display: false, grid: { display: false }, min: 0
+                        },
+                        y: { 
+                            grid: { display: false }, 
+                            ticks: { color: '#97A2B3', font: {size: 11} } 
+                        }
+                    },
+                    animation: { duration: 1000, easing: 'easeOutQuart' }
+                }
+            });
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* Save & Archive Functionality                                               */
+        /* -------------------------------------------------------------------------- */
+        
+        function saveCurrentEstimate(reportId) {
+            if(!appState.latestReport) return;
+
+            const estimateItem = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString('en-GB'), // dd/mm/yyyy
+                type: appState.projectType || 'Software Project',
+                platform: appState.platform || 'General',
+                cost: appState.latestReport.totalAmount,
+                timeline: appState.latestReport.timelineWeeks + " Weeks"
+            };
+
+            appState.savedEstimates.unshift(estimateItem);
+            localStorage.setItem('tallybuild_saved_estimates', JSON.stringify(appState.savedEstimates));
+            
+            renderSidebarHistory();
+            updateEstimatesBadge();
+            
+            const btn = document.getElementById(`save-btn-${reportId}`);
+            if(btn) {
+                btn.innerHTML = `✓ Saved`;
+                btn.classList.replace('bg-white', 'bg-bgElevated');
+                btn.classList.replace('text-bgMain', 'text-textSecondary');
+                btn.classList.add('border', 'border-borderMain');
+                btn.disabled = true;
+            }
+            
+            showToast('Estimate securely saved to Archive');
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* Compare & What-If Views                                                    */
+        /* -------------------------------------------------------------------------- */
+        
+        function renderComparisonView() {
+            const container = document.getElementById('comparison-content');
+            if(appState.savedEstimates.length < 2) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-16 px-6 rounded-xl bg-bgCard border border-borderMain">
+                        <svg class="w-8 h-8 text-textSecondary mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        <h3 class="text-sm font-medium text-textPrimary mb-1">Insufficient Data</h3>
+                        <p class="text-xs text-textSecondary mb-5 text-center">Save at least two estimates to enable comparative analytics.</p>
+                        <button onclick="switchTab('ai-estimator')" class="px-4 py-2 bg-white text-bgMain text-xs font-semibold rounded transition-colors">Start Estimator</button>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="p-6 rounded-xl bg-bgCard border border-borderMain h-[400px] w-full">
+                    <canvas id="chart-comparison"></canvas>
+                </div>
+            `;
+
+            const estimates = appState.savedEstimates.slice(0, 5).reverse(); 
+            const labels = estimates.map(e => `${e.type} (${e.date})`);
+            const data = estimates.map(e => e.cost);
+
+            if(chartInstances['comparison']) chartInstances['comparison'].destroy();
+
+            const ctx = document.getElementById('chart-comparison').getContext('2d');
+            chartInstances['comparison'] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Cost',
+                        data: data,
+                        backgroundColor: '#273142',
+                        hoverBackgroundColor: '#3B82F6',
+                        borderRadius: 4,
+                        barPercentage: 0.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` ₹${ctx.raw.toLocaleString('en-IN')}`
+                            },
+                            backgroundColor: '#161C27', borderColor: '#273142', borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.02)' },
+                            ticks: { callback: (val) => '₹' + (val/100000) + 'L', color: '#97A2B3' }
+                        },
+                        x: { grid: { display: false }, ticks: { color: '#97A2B3' } }
+                    }
+                }
+            });
+        }
+
+        function renderWhatIfView() {
+            const container = document.getElementById('whatif-content');
+            const baseEstimate = appState.savedEstimates[0]; 
+
+            if(!baseEstimate) {
+                container.innerHTML = `<div class="col-span-12 text-center py-16 px-6 rounded-xl bg-bgCard border border-borderMain"><p class="text-sm text-textSecondary">Save an estimate first to run resource simulations.</p></div>`;
+                return;
+            }
+
+            appState.whatifBaseCost = baseEstimate.cost;
+            // Safely parse number from string like "12 Weeks"
+            appState.whatifBaseTimeline = parseInt(baseEstimate.timeline.replace(/[^0-9]/g, '')) || 12;
+
+            container.innerHTML = `
+                <div class="lg:col-span-4 space-y-6">
+                    <div class="p-6 rounded-xl bg-bgCard border border-borderMain">
+                        <h4 class="font-medium text-xs text-textPrimary uppercase tracking-widest mb-6">Resource Allocation</h4>
+                        
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-end">
+                                <span class="text-sm text-textSecondary">Engineering Team</span>
+                                <span id="slider-team-val" class="font-semibold text-textPrimary">4 Members</span>
+                            </div>
+                            <input type="range" min="1" max="12" value="4" class="w-full accent-goldPrimary h-1 bg-borderMain rounded-lg cursor-pointer outline-none" oninput="updateWhatIfSimulation(this.value)">
+                        </div>
+                        
+                        <div class="mt-8 pt-6 border-t border-borderMain space-y-5">
+                            <div>
+                                <p class="text-[10px] text-textSecondary uppercase tracking-widest font-medium">Projected Cost</p>
+                                <p id="whatif-cost" class="text-2xl font-semibold text-textPrimary mt-1">₹${baseEstimate.cost.toLocaleString('en-IN')}</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-textSecondary uppercase tracking-widest font-medium">Projected Timeline</p>
+                                <p id="whatif-timeline" class="text-2xl font-semibold text-textPrimary mt-1">${appState.whatifBaseTimeline} Weeks</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:col-span-8 p-6 rounded-xl bg-bgCard border border-borderMain h-[400px]">
+                    <canvas id="chart-whatif"></canvas>
+                </div>
+            `;
+
+            initWhatIfChart();
+        }
+
+        function initWhatIfChart() {
+            const ctx = document.getElementById('chart-whatif').getContext('2d');
+            const sizes = [1, 2, 4, 6, 8, 12];
+            const baseCost = appState.whatifBaseCost;
+            
+            // Standard simulated math models
+            const costs = sizes.map(n => Math.round(baseCost * Math.pow(n/4, 0.15)));
+            const times = sizes.map(n => Math.max(2, Math.round(appState.whatifBaseTimeline * (4/n) * (1 + (n-4)*0.05))));
+
+            if(chartInstances['whatif']) chartInstances['whatif'].destroy();
+
+            chartInstances['whatif'] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sizes.map(s => s + ' Devs'),
+                    datasets: [
+                        {
+                            label: 'Cost (INR)',
+                            data: costs,
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                            yAxisID: 'y',
+                            tension: 0.3,
+                            fill: true,
+                            borderWidth: 2,
+                            pointBackgroundColor: '#10B981'
+                        },
+                        {
+                            label: 'Timeline (Weeks)',
+                            data: times,
+                            borderColor: '#3B82F6',
+                            yAxisID: 'y1',
+                            tension: 0.3,
+                            borderDash: [5, 5],
+                            borderWidth: 2,
+                            pointBackgroundColor: '#3B82F6'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        tooltip: { backgroundColor: '#161C27', borderColor: '#273142', borderWidth: 1 }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#97A2B3' } },
+                        y: { 
+                            type: 'linear', display: true, position: 'left',
+                            grid: { color: 'rgba(255,255,255,0.02)' },
+                            ticks: { callback: (val) => '₹' + (val/100000).toFixed(1) + 'L', color: '#97A2B3' }
+                        },
+                        y1: {
+                            type: 'linear', display: true, position: 'right',
+                            grid: { drawOnChartArea: false },
+                            ticks: { callback: (val) => val + ' wks', color: '#97A2B3' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateWhatIfSimulation(val) {
+            document.getElementById('slider-team-val').innerText = val + " Members";
+            
+            let n = parseInt(val);
+            let cost = Math.round(appState.whatifBaseCost * Math.pow(n/4, 0.15));
+            let weeks = Math.max(2, Math.round(appState.whatifBaseTimeline * (4/n) * (1 + (n-4)*0.05)));
+
+            document.getElementById('whatif-cost').innerText = "₹" + cost.toLocaleString('en-IN');
+            document.getElementById('whatif-timeline').innerText = weeks + " Weeks";
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* Utility & Helper Functions                                                 */
+        /* -------------------------------------------------------------------------- */
+        
+        function renderSidebarHistory() {
+            const listEl = document.getElementById('sidebar-history-list');
+            if (appState.savedEstimates.length === 0) {
+                listEl.innerHTML = `<p class="px-3 py-2 text-[11px] text-textSecondary italic">No archived reports.</p>`;
+                return;
+            }
+
+            let html = '';
+            appState.savedEstimates.slice(0, 3).forEach(item => {
+                html += `
+                    <div onclick="switchTab('my-estimates')" class="px-3 py-2 rounded-lg hover:bg-bgElevated cursor-pointer transition-colors flex flex-col gap-0.5 border border-transparent">
+                        <div class="flex justify-between items-center w-full">
+                            <span class="font-medium text-xs text-textPrimary truncate">${escapeHTML(item.type)}</span>
+                            <span class="font-medium text-textSecondary text-[10px]">₹${(item.cost/100000).toFixed(1)}L</span>
+                        </div>
+                        <span class="text-[10px] text-textSecondary">${item.date}</span>
+                    </div>
+                `;
+            });
+            listEl.innerHTML = html;
+        }
+
+        function renderSavedEstimatesList() {
+            const container = document.getElementById('saved-estimates-list');
+            if (appState.savedEstimates.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-16 px-6 rounded-xl bg-bgCard border border-borderMain">
+                        <p class="text-sm text-textSecondary mb-4">Your archive is empty. Generate a report in the estimator to save it here.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            appState.savedEstimates.forEach(item => {
+                html += `
+                    <div class="p-5 rounded-xl bg-bgCard border border-borderMain flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors hover:border-textSecondary/30">
+                        <div class="space-y-1">
+                            <div class="flex items-center space-x-2.5">
+                                <h3 class="font-semibold text-sm text-textPrimary">${escapeHTML(item.type)}</h3>
+                                <span class="text-[10px] uppercase font-medium tracking-wider px-2 py-0.5 rounded bg-bgElevated text-textSecondary">${escapeHTML(item.platform)}</span>
+                            </div>
+                            <p class="text-xs text-textSecondary">Archived: ${item.date} • Timeline: ${item.timeline}</p>
+                        </div>
+                        <div class="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end">
+                            <span class="font-semibold text-textPrimary text-base">₹${item.cost.toLocaleString('en-IN')}</span>
+                            <button onclick="deleteEstimate(${item.id})" class="p-1.5 rounded bg-bgMain border border-borderMain hover:bg-bgElevated text-textSecondary transition-colors" title="Delete Record">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+        }
+
+        function deleteEstimate(id) {
+            appState.savedEstimates = appState.savedEstimates.filter(e => e.id !== id);
+            localStorage.setItem('tallybuild_saved_estimates', JSON.stringify(appState.savedEstimates));
+            renderSavedEstimatesList();
+            renderSidebarHistory();
+            updateEstimatesBadge();
+            showToast('Estimate record removed');
+        }
+
+        function clearAllEstimates() {
+            if(!confirm("Erase all archived estimates? This action cannot be reversed.")) return;
+            appState.savedEstimates = [];
+            localStorage.removeItem('tallybuild_saved_estimates');
+            renderSavedEstimatesList();
+            renderSidebarHistory();
+            updateEstimatesBadge();
+            showToast('Archive successfully cleared');
+        }
+
+        function updateEstimatesBadge() {
+            document.getElementById('estimates-count-badge').innerText = appState.savedEstimates.length;
+        }
+
+        function toggleMobileSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('sidebar-backdrop');
+            sidebar.classList.toggle('-translate-x-full');
+            backdrop.classList.toggle('hidden');
+        }
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'pointer-events-auto bg-bgElevated border border-borderMain text-textPrimary px-4 py-3 rounded-lg shadow-xl text-xs font-medium flex items-center space-x-2.5 animate-slide-up';
+            toast.innerHTML = `
+                <div class="w-1.5 h-1.5 rounded-full bg-goldPrimary"></div>
+                <span>${escapeHTML(message)}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function escapeHTML(str) {
+            return String(str).replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+        }
+
+        function scrollToBottom() {
+            const area = document.getElementById('chat-scroll-area');
+            area.scrollTo({top: area.scrollHeight, behavior: 'smooth'});
+        }
+
+        function exportCurrentSession() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
+            const dlAnchor = document.createElement('a');
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", "tallybuild_analytics_export.json");
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+            showToast('Analytics payload exported');
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /* Authentication & User Session Management                                   */
+        /* -------------------------------------------------------------------------- */
+        
+        const DEMO_PROFILES = {
+            architect: {
+                id: 1,
+                email: 'architect@tallybuild.ai',
+                full_name: 'Amrutkumar V',
+                organization: 'TallyBuild Engineering Labs',
+                job_title: 'Lead Solutions Architect',
+                preferred_currency: 'INR',
+                token: 'demo_jwt_architect_token'
+            },
+            executive: {
+                id: 2,
+                email: 'vp@tallybuild.ai',
+                full_name: 'Priya Sharma',
+                organization: 'InfraTech Global',
+                job_title: 'VP Enterprise Architecture',
+                preferred_currency: 'INR',
+                token: 'demo_jwt_executive_token'
+            },
+            guest: {
+                id: 0,
+                email: 'evaluator@kle-tech.edu',
+                full_name: 'Hackfest Evaluator',
+                organization: 'KLE Tech Hackfest 2026',
+                job_title: 'Domain 4C Evaluator',
+                preferred_currency: 'INR',
+                token: 'demo_jwt_guest_token',
+                isGuest: true
+            }
+        };
+
+        function initAuth() {
+            const savedUserStr = localStorage.getItem('tallybuild_user');
+            if (savedUserStr) {
+                try {
+                    const user = JSON.parse(savedUserStr);
+                    applyLoggedInUser(user);
+                    hideAuthPage();
+                    return;
+                } catch (e) {
+                    localStorage.removeItem('tallybuild_user');
+                }
+            }
+            // If no user is saved, display the login page by default
+            showAuthPage();
+        }
+
+        function showAuthPage() {
+            const page = document.getElementById('auth-page');
+            if (page) {
+                page.classList.remove('hidden');
+                page.classList.add('flex');
+            }
+        }
+
+        function hideAuthPage() {
+            const page = document.getElementById('auth-page');
+            if (page) {
+                page.classList.add('hidden');
+                page.classList.remove('flex');
+            }
+        }
+
+        function openAuthModal() {
+            showAuthPage();
+        }
+
+        function closeAuthModal() {
+            // If logged in, safely hide; if not, keep active or continue as guest
+            if (appState.currentUser) {
+                hideAuthPage();
+            } else {
+                continueAsGuest();
+            }
+        }
+
+        function switchAuthTab(tab) {
+            const tabSignin = document.getElementById('tab-btn-signin');
+            const tabRegister = document.getElementById('tab-btn-register');
+            const formSignin = document.getElementById('form-auth-signin');
+            const formRegister = document.getElementById('form-auth-register');
+
+            if (tab === 'signin') {
+                tabSignin.className = "flex-1 py-2 text-xs font-semibold rounded-lg transition-all bg-goldPrimary text-bgMain shadow-sm";
+                tabRegister.className = "flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-textSecondary hover:text-textPrimary";
+                formSignin.classList.remove('hidden');
+                formRegister.classList.add('hidden');
+            } else {
+                tabRegister.className = "flex-1 py-2 text-xs font-semibold rounded-lg transition-all bg-goldPrimary text-bgMain shadow-sm";
+                tabSignin.className = "flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-textSecondary hover:text-textPrimary";
+                formRegister.classList.remove('hidden');
+                formSignin.classList.add('hidden');
+            }
+        }
+
+        function togglePasswordVisibility(inputId, eyeId) {
+            const input = document.getElementById(inputId);
+            const eye = document.getElementById(eyeId);
+            if (!input || !eye) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                eye.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"></path>`;
+            } else {
+                input.type = 'password';
+                eye.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>`;
+            }
+        }
+
+        async function handleSignInSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('signin-email').value.trim();
+            const password = document.getElementById('signin-password').value;
+            const submitBtn = document.getElementById('btn-submit-signin');
+            const errBanner = document.getElementById('signin-error');
+
+            errBanner.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <svg class="w-4 h-4 animate-spin inline mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                <span>Authenticating...</span>
+            `;
+
+            try {
+                let connected = false;
+                try {
+                    const res = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    if (res.ok) {
+                        const tokenData = await res.json();
+                        localStorage.setItem('tallybuild_auth_token', tokenData.access_token);
+                        const meRes = await fetch('/api/auth/me', {
+                            headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+                        });
+                        if (meRes.ok) {
+                            const user = await meRes.json();
+                            applyLoggedInUser(user);
+                            hideAuthPage();
+                            showToast(`Welcome back, ${user.full_name || user.email}! (Cloud Connected)`);
+                            connected = true;
+                        }
+                    }
+                } catch (netErr) {
+                    // Backend offline / not reachable
+                }
+
+                if (!connected) {
+                    // Demo fallback: matches known profiles or gracefully derives name from email
+                    let fallbackUser;
+                    if (email.toLowerCase().includes('architect')) {
+                        fallbackUser = DEMO_PROFILES.architect;
+                    } else if (email.toLowerCase().includes('vp') || email.toLowerCase().includes('priya')) {
+                        fallbackUser = DEMO_PROFILES.executive;
+                    } else {
+                        const namePart = email.split('@')[0].replace(/[\._]/g, ' ');
+                        const capitalName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+                        fallbackUser = {
+                            id: Date.now(),
+                            email: email,
+                            full_name: capitalName.length > 2 ? capitalName : 'Enterprise Lead',
+                            organization: 'Enterprise Architecture Org',
+                            job_title: 'Solutions Lead',
+                            preferred_currency: 'INR',
+                            token: 'local_jwt_session_' + Date.now()
+                        };
+                    }
+                    applyLoggedInUser(fallbackUser);
+                    hideAuthPage();
+                    showToast(`Signed in as ${fallbackUser.full_name} (Demo Session)`);
+                }
+            } catch (err) {
+                errBanner.innerText = err.message || 'Authentication error. Please check your credentials.';
+                errBanner.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>Sign In to Workspace</span><svg class="w-4 h-4 ml-1.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>`;
+            }
+        }
+
+        async function handleRegisterSubmit(e) {
+            e.preventDefault();
+            const fullName = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim();
+            const org = document.getElementById('reg-org').value.trim();
+            const role = document.getElementById('reg-role').value;
+            const currency = document.getElementById('reg-currency').value;
+            const password = document.getElementById('reg-password').value;
+            const submitBtn = document.getElementById('btn-submit-register');
+            const errBanner = document.getElementById('reg-error');
+
+            errBanner.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <svg class="w-4 h-4 animate-spin inline mr-1.5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                <span>Creating Account...</span>
+            `;
+
+            try {
+                let connected = false;
+                try {
+                    const res = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email,
+                            password,
+                            full_name: fullName,
+                            organization: org,
+                            job_title: role,
+                            preferred_currency: currency
+                        })
+                    });
+                    if (res.ok) {
+                        const newUser = await res.json();
+                        const loginRes = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email, password })
+                        });
+                        if (loginRes.ok) {
+                            const tokenData = await loginRes.json();
+                            localStorage.setItem('tallybuild_auth_token', tokenData.access_token);
+                            newUser.token = tokenData.access_token;
+                        }
+                        applyLoggedInUser(newUser);
+                        hideAuthPage();
+                        showToast(`Account registered for ${newUser.full_name}! (Cloud Connected)`);
+                        connected = true;
+                    }
+                } catch (netErr) {
+                    // Backend offline
+                }
+
+                if (!connected) {
+                    const fallbackUser = {
+                        id: Date.now(),
+                        email,
+                        full_name: fullName,
+                        organization: org,
+                        job_title: role,
+                        preferred_currency: currency,
+                        token: 'local_jwt_session_' + Date.now()
+                    };
+                    applyLoggedInUser(fallbackUser);
+                    hideAuthPage();
+                    showToast(`Account created for ${fallbackUser.full_name} (Local Demo Session)`);
+                }
+            } catch (err) {
+                errBanner.innerText = err.message || 'Registration failed.';
+                errBanner.classList.remove('hidden');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `<span>Register & Access Workspace</span><svg class="w-4 h-4 ml-1.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>`;
+            }
+        }
+
+        function quickDemoLogin(profileKey) {
+            const profile = DEMO_PROFILES[profileKey] || DEMO_PROFILES.architect;
+            applyLoggedInUser(profile);
+            hideAuthPage();
+            showToast(`Logged in as ${profile.full_name} (${profile.job_title})`);
+        }
+
+        function continueAsGuest() {
+            applyLoggedInUser(DEMO_PROFILES.guest);
+            hideAuthPage();
+            showToast('Welcome! Exploring in Guest Evaluation mode.');
+        }
+
+        function applyLoggedInUser(user) {
+            appState.currentUser = user;
+            localStorage.setItem('tallybuild_user', JSON.stringify(user));
+            if (user.token) {
+                localStorage.setItem('tallybuild_auth_token', user.token);
+            }
+
+            // Calculate avatar initials
+            let initials = 'TB';
+            if (user.full_name) {
+                const parts = user.full_name.trim().split(' ');
+                initials = (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+            } else if (user.email) {
+                initials = user.email.slice(0, 2).toUpperCase();
+            }
+
+            // Update sidebar profile card
+            const avatarBadge = document.getElementById('user-avatar-badge');
+            if (avatarBadge) avatarBadge.innerText = initials;
+
+            const nameDisplay = document.getElementById('user-name-display');
+            if (nameDisplay) nameDisplay.innerText = user.full_name || 'Enterprise Lead';
+
+            const emailDisplay = document.getElementById('user-email-display');
+            if (emailDisplay) emailDisplay.innerText = user.email || 'pro@tallybuild.ai';
+
+            // Update top bar
+            const topbarName = document.getElementById('topbar-user-name');
+            if (topbarName) topbarName.innerText = user.full_name || 'Signed In';
+
+            // Update Account Modal details
+            updateAccountModalDetails(user, initials);
+        }
+
+        function handleSignOut() {
+            localStorage.removeItem('tallybuild_user');
+            localStorage.removeItem('tallybuild_auth_token');
+            appState.currentUser = null;
+            closeAccountModal();
+            showAuthPage();
+            showToast('Signed out of TallyBuild workspace');
+        }
+
+        function openAccountModal() {
+            const modal = document.getElementById('account-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeAccountModal() {
+            const modal = document.getElementById('account-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function updateAccountModalDetails(user, initials) {
+            const modalAvatar = document.getElementById('modal-user-avatar');
+            if (modalAvatar) modalAvatar.innerText = initials;
+
+            const modalName = document.getElementById('modal-user-name');
+            if (modalName) modalName.innerText = user.full_name || 'Enterprise Lead';
+
+            const modalEmail = document.getElementById('modal-user-email');
+            if (modalEmail) modalEmail.innerText = user.email || 'pro@tallybuild.ai';
+
+            const modalOrg = document.getElementById('modal-user-org');
+            if (modalOrg) modalOrg.innerText = user.organization || 'TallyBuild Engineering Labs';
+
+            const modalRole = document.getElementById('modal-user-role');
+            if (modalRole) modalRole.innerText = user.job_title || 'Lead Solutions Architect';
+
+            const modalCur = document.getElementById('modal-user-currency');
+            if (modalCur) modalCur.innerText = (user.preferred_currency || 'INR') + ' (₹)';
+        }
+
+        function showForgotPasswordHelp() {
+            showToast('Password reset link dispatched to work email (Evaluation Simulation)');
+        }
+
+        // Global Esc key listener for modal closing
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeAccountModal();
+                if (appState.currentUser) {
+                    hideAuthPage();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

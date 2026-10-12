@@ -1,7 +1,9 @@
 import {
   Cell,
   Pie,
+  PieChart,
   ResponsiveContainer,
+  Tooltip,
 } from 'recharts';
 import { useMemo } from 'react';
 
@@ -17,11 +19,11 @@ interface CostBreakdownDonutChartProps {
 const CATEGORY_CONFIG = {
   personnel: {
     label: 'Personnel',
-    color: 'var(--color-info)',
+    color: 'var(--color-accent)',
   },
   tooling: {
     label: 'Tooling',
-    color: 'var(--color-warning)',
+    color: 'var(--color-info)',
   },
   infrastructure: {
     label: 'Infrastructure',
@@ -29,7 +31,7 @@ const CATEGORY_CONFIG = {
   },
   other: {
     label: 'Other',
-    color: 'var(--color-danger)',
+    color: 'var(--color-warning)',
   },
 } as const;
 
@@ -43,9 +45,32 @@ function formatCurrency(value: number, currency: string): string {
   }).format(value);
 }
 
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string; payload: { category: CategoryKey; value: number; total: number } }> }) {
+  if (!active || !payload || payload.length === 0) {
+    return null;
+  }
+
+  const { value, color, payload: itemPayload } = payload[0];
+  const config = CATEGORY_CONFIG[itemPayload.category];
+  const percentage = itemPayload.total > 0 ? ((itemPayload.value / itemPayload.total) * 100) : 0;
+
+  return (
+    <div className={styles.tooltip} style={{ borderColor: color }} role="tooltip">
+      <div className={styles.tooltipHeader}>
+        <span className={styles.tooltipColor} style={{ background: color }} aria-hidden="true" />
+        <span className={styles.tooltipLabel}>{config.label}</span>
+      </div>
+      <div className={styles.tooltipBody}>
+        <span className={styles.tooltipValue}>{formatCurrency(value, 'INR')}</span>
+        <span className={styles.tooltipPercent}>({percentage.toFixed(1)}%)</span>
+      </div>
+    </div>
+  );
+}
+
 export function CostBreakdownDonutChart({ result, className = '' }: CostBreakdownDonutChartProps) {
   const data = useMemo(() => {
-    const sections: Array<{ category: CategoryKey; value: number; label: string; color: string }> = [];
+    const sections: Array<{ category: CategoryKey; value: number; label: string; color: string; total: number }> = [];
 
     if (result.personnelCost > 0) {
       sections.push({
@@ -53,6 +78,7 @@ export function CostBreakdownDonutChart({ result, className = '' }: CostBreakdow
         value: result.personnelCost,
         label: CATEGORY_CONFIG.personnel.label,
         color: CATEGORY_CONFIG.personnel.color,
+        total: result.total,
       });
     }
     if (result.toolingCost > 0) {
@@ -61,6 +87,7 @@ export function CostBreakdownDonutChart({ result, className = '' }: CostBreakdow
         value: result.toolingCost,
         label: CATEGORY_CONFIG.tooling.label,
         color: CATEGORY_CONFIG.tooling.color,
+        total: result.total,
       });
     }
     if (result.infrastructureCost > 0) {
@@ -69,6 +96,7 @@ export function CostBreakdownDonutChart({ result, className = '' }: CostBreakdow
         value: result.infrastructureCost,
         label: CATEGORY_CONFIG.infrastructure.label,
         color: CATEGORY_CONFIG.infrastructure.color,
+        total: result.total,
       });
     }
     if (result.otherCost > 0) {
@@ -77,6 +105,7 @@ export function CostBreakdownDonutChart({ result, className = '' }: CostBreakdow
         value: result.otherCost,
         label: CATEGORY_CONFIG.other.label,
         color: CATEGORY_CONFIG.other.color,
+        total: result.total,
       });
     }
 
@@ -104,12 +133,16 @@ export function CostBreakdownDonutChart({ result, className = '' }: CostBreakdow
     <div className={`${styles.container} ${className}`} role="img" aria-label={`Cost breakdown: ${data.map(d => `${d.label} ${formatCurrency(d.value, result.currency)}`).join(', ')}`}>
       <div className={styles.chartWrapper}>
         <ResponsiveContainer width="100%" height={280}>
-          <svg className={styles.chartSvg} viewBox="0 0 280 280">
+          <PieChart>
             <defs>
               <filter id="donut-shadow" x="-50%" y="-50%" width="200%" height="200%">
                 <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#000" floodOpacity="0.3" />
               </filter>
             </defs>
+            <Tooltip
+              content={<CustomTooltip />}
+              wrapperStyle={{ pointerEvents: 'none' }}
+            />
             <Pie
               data={data}
               cx="50%"
@@ -119,7 +152,7 @@ export function CostBreakdownDonutChart({ result, className = '' }: CostBreakdow
               startAngle={90}
               endAngle={450}
               strokeWidth={0}
-              isAnimationActive={!window.matchMedia('(prefers-reduced-motion: reduce)').matches}
+              isAnimationActive={typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches}
               animationDuration={800}
               animationEasing="ease-out"
             >
@@ -127,7 +160,7 @@ export function CostBreakdownDonutChart({ result, className = '' }: CostBreakdow
                 <Cell key={`cell-${entry.category}`} fill={entry.color} />
               ))}
             </Pie>
-          </svg>
+          </PieChart>
           <div className={styles.centerContent} aria-hidden="true">
             <p className={styles.totalLabel}>Estimated total</p>
             <p className={styles.totalValue}>{formatCurrency(total, result.currency)}</p>

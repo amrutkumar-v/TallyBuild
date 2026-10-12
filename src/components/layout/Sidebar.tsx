@@ -13,42 +13,54 @@ interface SidebarProps {
 
 export function Sidebar({ id, open, onNavigate }: SidebarProps) {
   return (
-    <aside id={id} className={cn(styles.sidebar, open && styles.sidebarOpen)}>
-      <div className={styles.brand}>
-        <BrandMark />
-        <span className={styles.brandText}>
-          <span className={styles.brandName}>
-            TallyBuild <span className={styles.brandAccent}>AI</span>
+    <aside
+      id={id}
+      className={cn(styles.sidebar, open && styles.sidebarOpen)}
+      role="navigation"
+      aria-label="Main navigation"
+    >
+      <div className={styles.sidebarInner}>
+        <div className={styles.brand}>
+          <BrandMark />
+          <span className={styles.brandText}>
+            <span className={styles.brandName}>
+              TallyBuild <span className={styles.brandAccent}>AI</span>
+            </span>
+            <span className={styles.brandTag}>Cost intelligence</span>
           </span>
-          <span className={styles.brandTag}>Cost intelligence</span>
-        </span>
+        </div>
+
+        <nav className={styles.nav} aria-label="Primary">
+          <p className={styles.navLabel}>Workspace</p>
+          <ul className={styles.navList}>
+            {NAV_ITEMS.map((item, index) => (
+              <li key={item.to} style={{ '--item-index': index } as React.CSSProperties}>
+                <NavLink
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => cn(styles.link, isActive && styles.linkActive)}
+                  onClick={onNavigate}
+                >
+                  <span className={styles.linkIconWrapper}>
+                    <item.icon size={18} className={styles.linkIcon} aria-hidden="true" />
+                  </span>
+                  <span className={styles.linkLabel}>{item.label}</span>
+                  <span className={cn(styles.activeIndicator, styles.linkActive && styles.activeVisible)} aria-hidden="true" />
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className={styles.footer}>
+          <span className={styles.footerBadge}>Phase 02 · Demo build</span>
+          <p className={styles.footerNote}>
+            All figures are illustrative demo data. No live pricing or AI engine connected.
+          </p>
+        </div>
       </div>
 
-      <nav className={styles.nav} aria-label="Primary">
-        <p className={styles.navLabel}>Workspace</p>
-        <ul className={styles.navList}>
-          {NAV_ITEMS.map((item) => (
-            <li key={item.to}>
-              <NavLink
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) => cn(styles.link, isActive && styles.linkActive)}
-                onClick={onNavigate}
-              >
-                <item.icon size={18} className={styles.linkIcon} aria-hidden="true" />
-                <span>{item.label}</span>
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      <div className={styles.footer}>
-        <span className={styles.footerBadge}>Phase 01 · Demo build</span>
-        <p className={styles.footerNote}>
-          No live pricing, AI engine, database or backend is connected yet.
-        </p>
-      </div>
+      <div className={styles.ambientGlow} aria-hidden="true" />
     </aside>
   );
 }

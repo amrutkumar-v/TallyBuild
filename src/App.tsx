@@ -7,6 +7,9 @@ import DashboardPage from './pages/DashboardPage';
 import EstimatesPage from './pages/EstimatesPage';
 import NewEstimatePage from './pages/NewEstimatePage';
 import NotFoundPage from './pages/NotFoundPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import SettingsPage from './pages/SettingsPage';
+import TermsPage from './pages/TermsPage';
 import WhatIfPage from './pages/WhatIfPage';
 
 export default function App() {
@@ -20,6 +23,9 @@ export default function App() {
             <Route path="comparison" element={<ComparisonPage />} />
             <Route path="what-if" element={<WhatIfPage />} />
             <Route path="new-estimate" element={<NewEstimatePage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="privacy" element={<PrivacyPolicyPage />} />
+            <Route path="terms" element={<TermsPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

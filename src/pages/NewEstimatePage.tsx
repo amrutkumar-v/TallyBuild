@@ -519,198 +519,208 @@ export default function NewEstimatePage() {
       <div className={styles.layout}>
         <div className={styles.mainColumn}>
           <form className={styles.form} onSubmit={handleSubmit} noValidate>
-            <SectionCard
-              title="Project details"
-              description="Required fields are marked with an asterisk."
-            >
-              <TextField
-                id="projectName"
-                label="Project name"
-                required
-                value={values.projectName}
-                onChange={(value) => {
-                  updateValues({ projectName: value });
-                  clearProjectError('projectName');
-                }}
-                error={projectErrors.projectName}
-                hint="A short, recognisable name for this estimate."
-                placeholder="e.g. Atlas Platform Rebuild"
-                maxLength={80}
+            <div className={styles.sectionGroup}>
+              <SectionCard
+                title="Project details"
+                description="Required fields are marked with an asterisk."
+              >
+                <div className={styles.fieldRow}>
+                  <TextField
+                    id="projectName"
+                    label="Project name"
+                    required
+                    value={values.projectName}
+                    onChange={(value) => {
+                      updateValues({ projectName: value });
+                      clearProjectError('projectName');
+                    }}
+                    error={projectErrors.projectName}
+                    hint="A short, recognisable name for this estimate."
+                    placeholder="e.g. Atlas Platform Rebuild"
+                    maxLength={80}
+                  />
+
+                  <TextField
+                    id="scope"
+                    label="Scope"
+                    required
+                    value={values.scope}
+                    onChange={(value) => {
+                      updateValues({ scope: value });
+                      clearProjectError('scope');
+                    }}
+                    error={projectErrors.scope}
+                    hint="One sentence on what this project covers."
+                    placeholder="e.g. Re-platform the billing core onto a managed runtime"
+                    maxLength={160}
+                  />
+                </div>
+
+                <div className={styles.fieldRow}>
+                  <SelectField
+                    id="category"
+                    label="Category"
+                    required
+                    value={values.category}
+                    onChange={(value) => {
+                      updateValues({ category: isProjectCategory(value) ? value : '' });
+                      clearProjectError('category');
+                    }}
+                    options={PROJECT_CATEGORY_OPTIONS}
+                    error={projectErrors.category}
+                    placeholder="Select a category"
+                  />
+
+                  <SelectField
+                    id="complexity"
+                    label="Complexity"
+                    required
+                    value={values.complexity}
+                    onChange={(value) => {
+                      updateValues({ complexity: isProjectComplexity(value) ? value : '' });
+                      clearProjectError('complexity');
+                    }}
+                    options={PROJECT_COMPLEXITY_OPTIONS}
+                    error={projectErrors.complexity}
+                    placeholder="Select a complexity"
+                  />
+                </div>
+
+                <div className={styles.fieldRow}>
+                  <SelectField
+                    id="currency"
+                    label="Currency"
+                    required
+                    value={values.currency}
+                    onChange={(value) => {
+                      updateValues({ currency: value as CurrencyCode });
+                    }}
+                    options={CURRENCY_OPTIONS}
+                    hint="One currency per estimate. Live currency conversion is not configured."
+                  />
+
+                  <TextField
+                    id="plannedStartDate"
+                    label="Planned start date"
+                    type="date"
+                    value={values.plannedStartDate}
+                    onChange={(value) => {
+                      updateValues({ plannedStartDate: value });
+                      clearProjectError('plannedStartDate');
+                    }}
+                    error={projectErrors.plannedStartDate}
+                    hint="Optional. Leave blank if the schedule is not set."
+                  />
+                </div>
+
+                <TextField
+                  id="durationWeeks"
+                  label="Duration (weeks)"
+                  type="number"
+                  min={0}
+                  step="1"
+                  inputMode="numeric"
+                  value={values.durationWeeks}
+                  onChange={(value) => {
+                    updateValues({ durationWeeks: value });
+                    clearProjectError('durationWeeks');
+                  }}
+                  error={projectErrors.durationWeeks}
+                  hint="Optional. A rough schedule length."
+                  placeholder="e.g. 12"
+                />
+
+                <TextAreaField
+                  id="notes"
+                  label="Notes"
+                  value={values.notes}
+                  onChange={(value) => {
+                    updateValues({ notes: value });
+                    clearProjectError('notes');
+                  }}
+                  error={projectErrors.notes}
+                  hint="Optional working notes for this estimate."
+                  placeholder="Assumptions, risks or context"
+                  maxLength={500}
+                />
+              </SectionCard>
+            </div>
+
+            <div className={styles.sectionGroup}>
+              <PersonnelEditor
+                rows={personnelRows}
+                errors={personnelErrors}
+                currency={values.currency}
+                disabled={calculating}
+                onAdd={() => setPersonnelRows((current) => [...current, emptyPersonnelRow()])}
+                onRemove={removePersonnel}
+                onChange={updatePersonnel}
+                onClearError={clearPersonnelError}
               />
 
-              <TextField
-                id="scope"
-                label="Scope"
-                required
-                value={values.scope}
-                onChange={(value) => {
-                  updateValues({ scope: value });
-                  clearProjectError('scope');
-                }}
-                error={projectErrors.scope}
-                hint="One sentence on what this project covers."
-                placeholder="e.g. Re-platform the billing core onto a managed runtime"
-                maxLength={160}
+              <CostLinesEditor
+                title="Tooling"
+                description="One-off tools, licences and equipment. Cost = the amount you enter."
+                icon={Layers}
+                primaryLabel="Tool or licence"
+                primaryPlaceholder="e.g. Design suite licence"
+                amountLabel="Cost"
+                currency={values.currency}
+                rows={toolingRows}
+                errors={toolingErrors}
+                emptyTitle="No tooling costs yet"
+                emptyDescription="Add tools, licences or equipment if this project needs them."
+                addLabel="Add a tool"
+                disabled={calculating}
+                onAdd={() => setToolingRows((current) => [...current, emptyCostRow('tooling')])}
+                onRemove={removeTooling}
+                onChange={(id, patch) => updateCostRow(setToolingRows, id, patch)}
+                onClearError={(id, field) => clearCostError(setToolingErrors, id, field)}
               />
 
-              <SelectField
-                id="category"
-                label="Category"
-                required
-                value={values.category}
-                onChange={(value) => {
-                  updateValues({ category: isProjectCategory(value) ? value : '' });
-                  clearProjectError('category');
-                }}
-                options={PROJECT_CATEGORY_OPTIONS}
-                error={projectErrors.category}
-                placeholder="Select a category"
+              <CostLinesEditor
+                title="Infrastructure"
+                description="Recurring resources. Cost = monthly cost × months."
+                icon={Layers}
+                primaryLabel="Resource"
+                primaryPlaceholder="e.g. Cloud hosting"
+                amountLabel="Monthly cost"
+                monthsLabel="Months"
+                currency={values.currency}
+                rows={infrastructureRows}
+                errors={infrastructureErrors}
+                emptyTitle="No infrastructure costs yet"
+                emptyDescription="Add recurring resources such as hosting or databases."
+                addLabel="Add a resource"
+                disabled={calculating}
+                onAdd={() =>
+                  setInfrastructureRows((current) => [...current, emptyCostRow('infrastructure')])
+                }
+                onRemove={removeInfrastructure}
+                onChange={(id, patch) => updateCostRow(setInfrastructureRows, id, patch)}
+                onClearError={(id, field) => clearCostError(setInfrastructureErrors, id, field)}
               />
 
-              <SelectField
-                id="complexity"
-                label="Complexity"
-                required
-                value={values.complexity}
-                onChange={(value) => {
-                  updateValues({ complexity: isProjectComplexity(value) ? value : '' });
-                  clearProjectError('complexity');
-                }}
-                options={PROJECT_COMPLEXITY_OPTIONS}
-                error={projectErrors.complexity}
-                placeholder="Select a complexity"
+              <CostLinesEditor
+                title="Other costs"
+                description="Anything else: contingency, travel, training or third-party fees."
+                icon={Layers}
+                primaryLabel="Description"
+                primaryPlaceholder="e.g. Contingency"
+                amountLabel="Cost"
+                currency={values.currency}
+                rows={otherRows}
+                errors={otherErrors}
+                emptyTitle="No other costs yet"
+                emptyDescription="Add contingency, travel or other one-off costs if needed."
+                addLabel="Add a cost"
+                disabled={calculating}
+                onAdd={() => setOtherRows((current) => [...current, emptyCostRow('other')])}
+                onRemove={removeOther}
+                onChange={(id, patch) => updateCostRow(setOtherRows, id, patch)}
+                onClearError={(id, field) => clearCostError(setOtherErrors, id, field)}
               />
-
-              <SelectField
-                id="currency"
-                label="Currency"
-                required
-                value={values.currency}
-                onChange={(value) => {
-                  updateValues({ currency: value as CurrencyCode });
-                }}
-                options={CURRENCY_OPTIONS}
-                hint="One currency per estimate. Live currency conversion is not configured."
-              />
-
-              <TextField
-                id="plannedStartDate"
-                label="Planned start date"
-                type="date"
-                value={values.plannedStartDate}
-                onChange={(value) => {
-                  updateValues({ plannedStartDate: value });
-                  clearProjectError('plannedStartDate');
-                }}
-                error={projectErrors.plannedStartDate}
-                hint="Optional. Leave blank if the schedule is not set."
-              />
-
-              <TextField
-                id="durationWeeks"
-                label="Duration (weeks)"
-                type="number"
-                min={0}
-                step="1"
-                inputMode="numeric"
-                value={values.durationWeeks}
-                onChange={(value) => {
-                  updateValues({ durationWeeks: value });
-                  clearProjectError('durationWeeks');
-                }}
-                error={projectErrors.durationWeeks}
-                hint="Optional. A rough schedule length."
-                placeholder="e.g. 12"
-              />
-
-              <TextAreaField
-                id="notes"
-                label="Notes"
-                value={values.notes}
-                onChange={(value) => {
-                  updateValues({ notes: value });
-                  clearProjectError('notes');
-                }}
-                error={projectErrors.notes}
-                hint="Optional working notes for this estimate."
-                placeholder="Assumptions, risks or context"
-                maxLength={500}
-              />
-            </SectionCard>
-
-            <PersonnelEditor
-              rows={personnelRows}
-              errors={personnelErrors}
-              currency={values.currency}
-              disabled={calculating}
-              onAdd={() => setPersonnelRows((current) => [...current, emptyPersonnelRow()])}
-              onRemove={removePersonnel}
-              onChange={updatePersonnel}
-              onClearError={clearPersonnelError}
-            />
-
-            <CostLinesEditor
-              title="Tooling"
-              description="One-off tools, licences and equipment. Cost = the amount you enter."
-              icon={Layers}
-              primaryLabel="Tool or licence"
-              primaryPlaceholder="e.g. Design suite licence"
-              amountLabel="Cost"
-              currency={values.currency}
-              rows={toolingRows}
-              errors={toolingErrors}
-              emptyTitle="No tooling costs yet"
-              emptyDescription="Add tools, licences or equipment if this project needs them."
-              addLabel="Add a tool"
-              disabled={calculating}
-              onAdd={() => setToolingRows((current) => [...current, emptyCostRow('tooling')])}
-              onRemove={removeTooling}
-              onChange={(id, patch) => updateCostRow(setToolingRows, id, patch)}
-              onClearError={(id, field) => clearCostError(setToolingErrors, id, field)}
-            />
-
-            <CostLinesEditor
-              title="Infrastructure"
-              description="Recurring resources. Cost = monthly cost × months."
-              icon={Layers}
-              primaryLabel="Resource"
-              primaryPlaceholder="e.g. Cloud hosting"
-              amountLabel="Monthly cost"
-              monthsLabel="Months"
-              currency={values.currency}
-              rows={infrastructureRows}
-              errors={infrastructureErrors}
-              emptyTitle="No infrastructure costs yet"
-              emptyDescription="Add recurring resources such as hosting or databases."
-              addLabel="Add a resource"
-              disabled={calculating}
-              onAdd={() =>
-                setInfrastructureRows((current) => [...current, emptyCostRow('infrastructure')])
-              }
-              onRemove={removeInfrastructure}
-              onChange={(id, patch) => updateCostRow(setInfrastructureRows, id, patch)}
-              onClearError={(id, field) => clearCostError(setInfrastructureErrors, id, field)}
-            />
-
-            <CostLinesEditor
-              title="Other costs"
-              description="Anything else: contingency, travel, training or third-party fees."
-              icon={Layers}
-              primaryLabel="Description"
-              primaryPlaceholder="e.g. Contingency"
-              amountLabel="Cost"
-              currency={values.currency}
-              rows={otherRows}
-              errors={otherErrors}
-              emptyTitle="No other costs yet"
-              emptyDescription="Add contingency, travel or other one-off costs if needed."
-              addLabel="Add a cost"
-              disabled={calculating}
-              onAdd={() => setOtherRows((current) => [...current, emptyCostRow('other')])}
-              onRemove={removeOther}
-              onChange={(id, patch) => updateCostRow(setOtherRows, id, patch)}
-              onClearError={(id, field) => clearCostError(setOtherErrors, id, field)}
-            />
+            </div>
 
             {savedDraft && result.kind === 'idle' ? (
               <p className={styles.savedNote} role="status">

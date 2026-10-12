@@ -8,6 +8,7 @@ export interface EstimatesContextValue {
   toggleSampleData: () => void;
   persistenceAvailable: boolean;
   addEstimate: (input: EstimateDraftInput) => Estimate;
+  clearAllDrafts: () => void;
 }
 
 export const EstimatesContext = createContext<EstimatesContextValue | null>(null);

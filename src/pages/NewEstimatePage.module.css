@@ -1,8 +1,14 @@
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: var(--space-6);
-  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .layout {
+    grid-template-columns: 1fr 340px;
+    align-items: start;
+  }
 }
 
 .mainColumn {
@@ -15,41 +21,55 @@
   gap: var(--space-6);
 }
 
-.actions {
+.sectionGroup {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  padding-top: var(--space-1);
+  flex-direction: column;
+  gap: var(--space-5);
+  animation: slideUp 0.5s var(--ease-out) forwards;
 }
 
-.formNote {
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--color-border);
-  font-size: var(--text-xs);
-  color: var(--color-ink-muted);
+.sectionGroup:nth-child(1) { animation-delay: 0ms; }
+.sectionGroup:nth-child(2) { animation-delay: 100ms; }
+
+.fieldRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .fieldRow {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .savedNote {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-success-soft);
+  border: 1px solid var(--color-success-border);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  color: var(--color-ink-secondary);
-}
-
-.savedNote svg {
-  flex-shrink: 0;
   color: var(--color-success);
+  animation: slideDown 0.4s var(--ease-out) forwards;
 }
 
-.reason {
-  font-size: var(--text-sm);
-  color: var(--color-ink-muted);
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
 }
 
 .spinner {
-  animation: spin 1s linear infinite;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
 }
 
 @keyframes spin {
@@ -58,37 +78,98 @@
   }
 }
 
+.reason {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-warning);
+  animation: slideDown 0.3s var(--ease-out) forwards;
+}
+
+.formNote {
+  font-size: var(--text-xs);
+  color: var(--color-ink-muted);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
 .aside {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-  min-width: 0;
+  gap: var(--space-5);
+}
+
+@media (min-width: 1024px) {
+  .aside {
+    position: sticky;
+    top: calc(var(--topbar-height) + var(--space-6));
+    max-height: calc(100vh - var(--topbar-height) - var(--space-10));
+    overflow-y: auto;
+    padding-right: var(--space-2);
+    /* Ensure smooth scrolling and prevent content overlap */
+    scrollbar-gutter: stable;
+  }
+  
+  /* Prevent sticky sections from overlapping */
+  .aside > * {
+    flex-shrink: 0;
+  }
+}
+
+/* Ensure SectionCards in aside don't collapse */
+.aside :global(.sectionCard) {
+  flex-shrink: 0;
+}
+
+/* Add visual separation for aside sections */
+.aside :global(.sectionCard) + :global(.sectionCard) {
+  margin-top: 0; /* gap handles spacing */
 }
 
 .steps {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
 .step {
   display: flex;
   align-items: flex-start;
   gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition:
+    border-color var(--transition-base),
+    box-shadow var(--transition-base),
+    transform var(--transition-base);
+}
+
+.step:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(4px);
 }
 
 .stepNumber {
-  display: grid;
-  place-items: center;
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-full);
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-soft-border);
   font-size: var(--text-xs);
-  font-weight: var(--weight-semibold);
-  color: var(--color-ink-secondary);
+  font-weight: var(--weight-bold);
+  color: var(--color-accent);
 }
 
 .stepBody {
@@ -100,43 +181,37 @@
   font-size: var(--text-sm);
   font-weight: var(--weight-semibold);
   color: var(--color-ink);
+  margin: 0 0 2px;
 }
 
 .stepDetail {
   font-size: var(--text-xs);
   color: var(--color-ink-muted);
+  margin: 0;
+}
+
+.storageWarning {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-warning-soft);
+  border: 1px solid var(--color-warning-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--color-warning);
 }
 
 .asideText {
   display: flex;
   align-items: flex-start;
-  gap: var(--space-3);
+  gap: var(--space-2);
   font-size: var(--text-sm);
   color: var(--color-ink-secondary);
-}
-
-.asideText + .asideText {
-  margin-top: var(--space-4);
+  margin: 0;
+  line-height: var(--leading-relaxed);
 }
 
 .asideText svg {
   flex-shrink: 0;
   margin-top: 2px;
-  color: var(--color-accent-ink);
-}
-
-.storageWarning {
-  margin-top: var(--space-4);
-  padding: var(--space-3);
-  border: 1px solid var(--color-danger-border);
-  border-radius: var(--radius-md);
-  background: var(--color-danger-soft);
-  font-size: var(--text-xs);
-  color: var(--color-danger);
-}
-
-@media (max-width: 1023px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
+  color: var(--color-accent);
 }

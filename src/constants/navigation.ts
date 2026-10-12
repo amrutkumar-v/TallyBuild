@@ -1,12 +1,14 @@
-import { ClipboardList, GitCompareArrows, LayoutDashboard, SlidersHorizontal } from 'lucide-react';
+import { ClipboardList, Cog, GitCompareArrows, LayoutDashboard, SlidersHorizontal } from 'lucide-react';
 
 import type { NavigationItem } from '../types';
 
 export const NAV_ITEMS: NavigationItem[] = [
   { label: 'Dashboard', to: '/', icon: LayoutDashboard, end: true },
+  { label: 'New Estimate', to: '/new-estimate', icon: ClipboardList },
   { label: 'Estimates', to: '/estimates', icon: ClipboardList },
-  { label: 'Scenario Comparison', to: '/comparison', icon: GitCompareArrows },
+  { label: 'Product Comparison', to: '/comparison', icon: GitCompareArrows },
   { label: 'What-if Analysis', to: '/what-if', icon: SlidersHorizontal },
+  { label: 'Settings', to: '/settings', icon: Cog },
 ];
 
 const EXTRA_PAGE_TITLES: Record<string, string> = {

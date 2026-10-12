@@ -21,10 +21,10 @@ interface CostLinesBarChartProps {
 }
 
 const CATEGORY_COLORS = {
-  personnel: 'var(--color-info)',
-  tooling: 'var(--color-warning)',
+  personnel: 'var(--color-accent)',
+  tooling: 'var(--color-info)',
   infrastructure: 'var(--color-success)',
-  other: 'var(--color-danger)',
+  other: 'var(--color-warning)',
 } as const;
 
 type CategoryKey = keyof typeof CATEGORY_COLORS;
@@ -78,7 +78,7 @@ function CustomBar(props: {
   payload?: { value: number; color: string; category: CategoryKey };
 }) {
   const { x = 0, y = 0, width = 0, height = 0, radius = 0, fill = '' } = props;
-  const isAnimated = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isAnimated = typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (width <= 0 || height <= 0) {
     return null;

@@ -11,6 +11,7 @@ import {
 import { useMemo } from 'react';
 
 import type { Estimate } from '../../../types';
+import type { CurrencyCode } from '../../../estimation/currencies';
 import { formatCurrency } from '../../../utils/format';
 
 import styles from './ComparisonBarChart.module.css';
@@ -44,13 +45,13 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
       {data.estimated !== null && (
         <div className={styles.tooltipRow}>
           <span className={styles.tooltipLabel}>Estimated</span>
-          <span className={styles.tooltipValue}>{formatCurrency(data.estimated, data.currency as any)}</span>
+          <span className={styles.tooltipValue}>{formatCurrency(data.estimated, data.currency as CurrencyCode)}</span>
         </div>
       )}
       {data.actual !== null && (
         <div className={styles.tooltipRow}>
           <span className={styles.tooltipLabel}>Actual</span>
-          <span className={styles.tooltipValue}>{formatCurrency(data.actual, data.currency as any)}</span>
+          <span className={styles.tooltipValue}>{formatCurrency(data.actual, data.currency as CurrencyCode)}</span>
         </div>
       )}
       {data.estimated === null && data.actual === null && (
@@ -72,7 +73,7 @@ function CustomBar(props: {
   payload?: { value: number | null; isEstimated: boolean };
 }) {
   const { x = 0, y = 0, width = 0, height = 0, radius = 0, fill = '' } = props;
-  const isAnimated = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isAnimated = typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   if (width <= 0 || height <= 0) {
     return null;
@@ -158,7 +159,7 @@ export function ComparisonBarChart({ estimates, className = '' }: ComparisonBarC
             <XAxis
               type="number"
               domain={[0, maxValue > 0 ? maxValue * 1.2 : 100000]}
-              tickFormatter={(value) => formatCurrency(value, 'INR' as any)}
+              tickFormatter={(value) => formatCurrency(value, 'INR' as CurrencyCode)}
               tick={{ fontSize: 11, fill: 'var(--color-ink-muted)', fontFamily: 'var(--font-mono)' }}
               axisLine={false}
               tickLine={false}
