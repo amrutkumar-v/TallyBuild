@@ -4,17 +4,17 @@ from fastapi import APIRouter
 
 from ..errors import ApiError
 from ..estimation.calculate import calculate_estimate
-from ..schemas import EstimateRequest, EstimateResult
+from ..schemas import ProjectEstimateRequest, ProjectEstimateResult
 
 router = APIRouter(prefix="/estimates", tags=["estimates"])
 
 
 @router.post(
     "/calculate",
-    response_model=EstimateResult,
+    response_model=ProjectEstimateResult,
     response_model_exclude_none=True,
 )
-def calculate(request: EstimateRequest) -> EstimateResult:
+def calculate(request: ProjectEstimateRequest) -> ProjectEstimateResult:
     calculation = calculate_estimate(request)
     if not calculation.ok or calculation.result is None:
         details = [error.model_dump(exclude_none=True) for error in calculation.errors]

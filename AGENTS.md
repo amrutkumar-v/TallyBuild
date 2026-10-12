@@ -5,24 +5,24 @@ Guidance for AI agents (and humans) working on this repository.
 ## Project overview
 
 TallyBuild AI is a hackathon project for KLE TECH HACKFEST 2026, Domain 4C — AI for Cost
-Estimation of Building Products. It is a construction-tech workspace for creating
-building-product cost estimates, comparing product alternatives and running what-if
-scenario analysis.
+Estimation. It is a workspace for creating project cost estimates across four sections —
+personnel, tooling, infrastructure and other costs — comparing estimates and running
+what-if scenario analysis.
 
 **Current status:** Phase 00 (foundation) and Phase 01 (premium UI) are implemented, plus
-Phase 02A (a deterministic, pure-TS estimation core under `src/estimation/` — units,
-rounding, sample catalogue, `calculateEstimate`), Phase 02B (API contract docs under
-`docs/`), Phase 02C (a FastAPI service under `backend/` that reproduces the core over HTTP —
-health, products and calculate endpoints, pytest-tested) and Phase 02D (a typed frontend API
-client under `src/api/` that wires the New Estimate flow to that service).
+Phase 02A (a deterministic, pure-TS estimation core under `src/estimation/` — currencies,
+rounding, `calculateEstimate`), Phase 02B (API contract docs under `docs/`), Phase 02C (a
+FastAPI service under `backend/` that reproduces the core over HTTP — health and calculate
+endpoints, pytest-tested) and Phase 02D (a typed frontend API client under `src/api/` that
+wires the New Estimate flow to that service).
 
-The New Estimate screen now fetches the product catalogue from the API and sends material
-lines to `POST /api/v1/estimates/calculate`; it also stores the returned total on the local
-draft. When the API is unreachable the app stays usable and falls back to the clearly
-labelled **offline demo catalogue** — it never fabricates a total. All other screens remain
+The New Estimate screen collects cost lines (personnel, tooling, infrastructure and other)
+and posts them to `POST /api/v1/estimates/calculate`; it also stores the returned total on
+the local draft. When the API is unreachable the app stays usable and shows a clearly
+labelled **offline state** — it never fabricates a total. All other screens remain
 client-side and make no server calls. There is no database, authentication, AI service,
-pricing API or deployment config. All displayed figures and API prices are illustrative demo
-data.
+pricing API or deployment config. All displayed figures and API amounts are illustrative
+demo data.
 
 **Never claim unimplemented functionality works.** Placeholders must be visibly marked as
 coming soon, and demo values must be labelled as illustrative.
@@ -49,17 +49,18 @@ src/
       SearchField.tsx      labelled search input with clear button
       FilterChips.tsx      single-select chip group (aria-pressed buttons)
       BrandMark.tsx        logo mark
+      FloatingAIAssistant.tsx  floating assistant launcher (UI only)
     dashboard/             Dashboard-only sections (SummaryGrid, RecentEstimates, HowItHelps)
-    estimates/             EstimatesToolbar + EstimatesTable + LineItemsEditor +
-                           EstimateResultCard (New Estimate material + result UI)
+    estimates/             EstimatesToolbar + EstimatesTable + CostLinesEditor +
+                           PersonnelEditor + EstimateResultCard (New Estimate + result UI)
   api/                     Typed estimation-API client (types, fetch wrapper, health,
-                           products, estimates endpoints) — no React, never fabricates data
+                           estimates endpoints) — no React, never fabricates data
   constants/               navigation.ts (nav items, page titles), labels.ts (enum labels)
   data/sampleEstimates.ts  Hard-coded demo estimates (origin: 'sample')
-  estimation/              Pure-TS deterministic cost core (units, rounding, catalogue,
+  estimation/              Pure-TS deterministic cost core (currencies, money rounding,
                            calculateEstimate) — no React/network; see docs/estimation-engine.md
   pages/                   Route screens: Dashboard, Estimates, Comparison, WhatIf,
-                           NewEstimate, NotFound
+                           NewEstimate, Settings, Privacy, Terms, NotFound
   store/                   estimates-context.ts (context + hook), EstimatesProvider.tsx
   styles/tokens.css        Design tokens (single source of truth)
   styles/base.css          Reset, element defaults, focus styles, utilities
@@ -71,20 +72,20 @@ backend/
     config.py              Service constants (name, version, API prefix, CORS origins)
     schemas.py             Pydantic request/response models (single source of wire shapes)
     errors.py              Error envelope, ApiError, exception handlers
-    routers/               health.py, products.py, estimates.py
-    estimation/            Python port of the estimation core (units, money, catalogue,
-                           calculate) — mirrors src/estimation/ exactly
-  tests/                   pytest suite (health, products, calculate, rounding)
+    routers/               health.py, estimates.py
+    estimation/            Python port of the estimation core (money, calculate) —
+                           mirrors src/estimation/ exactly
+  tests/                   pytest suite (health, calculate, rounding, shared fixture)
   pyproject.toml           pytest + ruff configuration (ruff line-length 100)
 ```
 
 Data flow: `EstimatesProvider` holds sample estimates plus locally created drafts,
 persists user drafts and the sample-data toggle to `localStorage`, and exposes them via
 `useEstimates()`. Pages derive filtered views locally. The New Estimate page additionally
-calls the estimation API through `src/api/` — it loads the catalogue, posts material lines to
+calls the estimation API through `src/api/` — it checks `/api/v1/health`, posts cost lines to
 `POST /api/v1/estimates/calculate` and saves the returned total on the local draft; when the
-API is unreachable it shows the labelled offline demo catalogue and disables calculation
-rather than fabricating a total. All other screens are client-side. The TypeScript core is
+API is unreachable it shows a clearly labelled offline state and disables calculation rather
+than fabricating a total. All other screens are client-side. The TypeScript core is
 the source of truth — `backend/app/estimation/` must mirror it exactly (same error codes,
 messages, validation order and rounding).
 
@@ -119,7 +120,7 @@ messages, validation order and rounding).
   screen-reader-only text.
 - Design empty, no-results, validation and storage-error states where relevant.
 - Use `lucide-react` for icons; no emoji as icons.
-- Currency: INR via `formatCurrency` / `formatCurrencyShort` from `utils/format.ts`.
+- Currency: multi-currency (INR/USD/EUR/AED) via `formatCurrency` / `formatCurrencyShort` from `utils/format.ts`.
 - Demo/sample data must be flagged as illustrative (use `DemoNotice`).
 
 ### Scope
@@ -175,7 +176,7 @@ If a check cannot run, say so explicitly. Never claim a check passed when it did
 | ----- | ----------------------------------------------------------------- |
 | 00    | Foundation: Vite + React + TS, design tokens, docs, lint/build     |
 | 01    | Premium UI: shell, dashboard, estimates, comparison/what-if stubs, new-estimate form |
-| 02    | FastAPI estimation engine, quantity/material inputs, AI estimates  |
+| 02    | Deterministic estimation engine in TS + FastAPI, cost-section inputs, New Estimate wiring, AI estimates (AI pending) |
 | 03    | Product datasets, product comparison, what-if scenario analysis    |
 | 04    | Supabase persistence and/or authentication                         |
 | 05    | Deployment and demo polish                                         |

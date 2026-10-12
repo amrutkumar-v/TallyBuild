@@ -2,62 +2,68 @@
 
 These models are the single definition of the wire shapes. They mirror the
 TypeScript core types in ``src/estimation/types.ts`` and are reused by the
-catalogue, the calculation engine and the HTTP routers.
+calculation engine and the HTTP routers.
 """
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-CurrencyCode = Literal["INR"]
+CurrencyCode = Literal["INR", "USD", "EUR", "AED"]
+
+CostSectionKey = Literal["personnel", "tooling", "infrastructure", "other"]
 
 EstimateErrorCode = Literal[
     "EMPTY_REQUEST",
-    "MISSING_PRODUCT",
-    "INVALID_QUANTITY",
-    "INVALID_UNIT",
-    "INCOMPATIBLE_UNIT",
-    "UNIT_CONVERSION_UNSUPPORTED",
-    "INVALID_PRICE",
-    "INVALID_PRICE_SOURCE",
+    "UNSUPPORTED_CURRENCY",
+    "INVALID_PERSONNEL",
+    "INVALID_TOOLING",
+    "INVALID_INFRASTRUCTURE",
+    "INVALID_OTHER",
     "NON_FINITE_RESULT",
 ]
 
 
-class PriceSource(BaseModel):
+class PersonnelLine(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    label: str
-    priceDate: str
-    currency: CurrencyCode
-    isIllustrative: bool
+    role: str
+    people: float
+    hours: float
+    hourlyRate: float
 
 
-class MaterialProduct(BaseModel):
+class ToolingLine(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    id: str
     name: str
-    category: str
-    unit: str
-    unitPrice: float
-    priceSource: PriceSource
+    amount: float
 
 
-class EstimateLineItem(BaseModel):
+class InfrastructureLine(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
-    productId: str
-    quantity: float
-    unit: str | None = None
-    label: str | None = None
+    name: str
+    monthlyCost: float
+    months: float
 
 
-class EstimateRequest(BaseModel):
+class OtherCostLine(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    description: str
+    amount: float
+
+
+class ProjectEstimateRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     projectName: str | None = None
-    lines: list[EstimateLineItem]
+    currency: str = ""
+    personnel: list[PersonnelLine] = Field(default_factory=list)
+    tooling: list[ToolingLine] = Field(default_factory=list)
+    infrastructure: list[InfrastructureLine] = Field(default_factory=list)
+    other: list[OtherCostLine] = Field(default_factory=list)
 
     @field_validator("projectName")
     @classmethod
@@ -68,38 +74,68 @@ class EstimateRequest(BaseModel):
         return trimmed or None
 
 
+class PersonnelResult(PersonnelLine):
+    cost: float
+
+
+class ToolingResult(ToolingLine):
+    cost: float
+
+
+class InfrastructureResult(InfrastructureLine):
+    cost: float
+
+
+class OtherCostResult(OtherCostLine):
+    cost: float
+
+
+class PersonnelSection(BaseModel):
+    lines: list[PersonnelResult]
+    subtotal: float
+
+
+class ToolingSection(BaseModel):
+    lines: list[ToolingResult]
+    subtotal: float
+
+
+class InfrastructureSection(BaseModel):
+    lines: list[InfrastructureResult]
+    subtotal: float
+
+
+class OtherCostSection(BaseModel):
+    lines: list[OtherCostResult]
+    subtotal: float
+
+
+class ProjectEstimateResult(BaseModel):
+    projectName: str | None = None
+    currency: CurrencyCode
+    personnel: PersonnelSection
+    tooling: ToolingSection
+    infrastructure: InfrastructureSection
+    other: OtherCostSection
+    personnelCost: float
+    toolingCost: float
+    infrastructureCost: float
+    otherCost: float
+    lineCount: int
+    total: float
+    assumptions: list[str]
+
+
 class EstimateValidationError(BaseModel):
     code: EstimateErrorCode
     message: str
+    section: CostSectionKey | None = None
     lineIndex: int | None = None
-    productId: str | None = None
 
 
-class LineCalculationResult(BaseModel):
-    productId: str
-    productName: str
-    category: str
-    unit: str
-    quantity: float
-    unitPrice: float
-    lineSubtotal: float
-    priceSource: PriceSource
-    label: str | None = None
-
-
-class EstimateResult(BaseModel):
-    projectName: str | None = None
-    currency: CurrencyCode
-    itemCount: int
-    lineResults: list[LineCalculationResult]
-    subtotal: float
-    total: float
-    priceSources: list[PriceSource]
-
-
-class CatalogueInfo(BaseModel):
-    products: int
-    currency: CurrencyCode
+class HealthCapabilities(BaseModel):
+    currencies: list[str]
+    categories: list[str]
 
 
 class HealthResponse(BaseModel):
@@ -107,9 +143,4 @@ class HealthResponse(BaseModel):
     service: str
     version: str
     timestamp: str
-    catalogue: CatalogueInfo
-
-
-class ProductListResponse(BaseModel):
-    count: int
-    products: list[MaterialProduct]
+    capabilities: HealthCapabilities

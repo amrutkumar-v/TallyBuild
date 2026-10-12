@@ -4,9 +4,8 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter
 
-from ..config import CURRENCY, SERVICE_NAME, SERVICE_VERSION
-from ..estimation.catalogue import SAMPLE_PRODUCT_CATALOGUE
-from ..schemas import CatalogueInfo, HealthResponse
+from ..config import COST_SECTIONS, SERVICE_NAME, SERVICE_VERSION, SUPPORTED_CURRENCIES
+from ..schemas import HealthCapabilities, HealthResponse
 
 router = APIRouter(prefix="/health", tags=["health"])
 
@@ -20,8 +19,8 @@ def get_health() -> HealthResponse:
         service=SERVICE_NAME,
         version=SERVICE_VERSION,
         timestamp=timestamp,
-        catalogue=CatalogueInfo(
-            products=len(SAMPLE_PRODUCT_CATALOGUE.products),
-            currency=CURRENCY,
+        capabilities=HealthCapabilities(
+            currencies=list(SUPPORTED_CURRENCIES),
+            categories=list(COST_SECTIONS),
         ),
     )

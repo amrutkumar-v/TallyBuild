@@ -8,232 +8,330 @@ calculation rules.
 import math
 from dataclasses import dataclass, field
 
+from ..config import SUPPORTED_CURRENCIES
 from ..schemas import (
-    EstimateLineItem,
-    EstimateRequest,
-    EstimateResult,
     EstimateValidationError,
-    LineCalculationResult,
-    PriceSource,
+    InfrastructureResult,
+    InfrastructureSection,
+    OtherCostResult,
+    OtherCostSection,
+    PersonnelLine,
+    PersonnelResult,
+    PersonnelSection,
+    ProjectEstimateRequest,
+    ProjectEstimateResult,
+    ToolingResult,
+    ToolingSection,
 )
-from .catalogue import SAMPLE_PRODUCT_CATALOGUE, ProductCatalogue, find_product
 from .money import round_currency
-from .units import are_units_compatible, is_supported_unit
 
 
 @dataclass(frozen=True)
 class EstimateCalculation:
     ok: bool
-    result: EstimateResult | None = None
+    result: ProjectEstimateResult | None = None
     errors: tuple[EstimateValidationError, ...] = field(default_factory=tuple)
 
 
-def _is_valid_price_source(source: object) -> bool:
-    if not isinstance(source, PriceSource):
-        return False
+def _is_finite_non_negative(value: object) -> bool:
     return (
-        isinstance(source.label, str)
-        and source.label.strip() != ""
-        and isinstance(source.priceDate, str)
-        and source.priceDate.strip() != ""
-        and source.currency == "INR"
-        and source.isIllustrative is True
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and value >= 0
     )
 
 
-def _validate_line(
-    line: EstimateLineItem,
-    index: int,
-    catalogue: ProductCatalogue,
+def _is_non_empty_text(value: object) -> bool:
+    return isinstance(value, str) and value.strip() != ""
+
+
+def _currency_supported(currency: object) -> bool:
+    return isinstance(currency, str) and currency in SUPPORTED_CURRENCIES
+
+
+def build_assumptions(currency: str) -> list[str]:
+    return [
+        (
+            f"All amounts are calculated in {currency}. Live currency conversion is not "
+            "configured, so each estimate stays in the currency you choose."
+        ),
+        "Personnel cost = people × hours × hourly rate per team line.",
+        "Infrastructure cost = monthly cost × months per resource line.",
+        'Excludes taxes, duties and contingency unless you add them as an "other" cost line.',
+    ]
+
+
+def validate_estimate_request(
+    request: ProjectEstimateRequest,
 ) -> list[EstimateValidationError]:
     errors: list[EstimateValidationError] = []
-    line_number = index + 1
-    product = find_product(catalogue, line.productId)
 
-    if product is None:
+    if not _currency_supported(request.currency):
         errors.append(
             EstimateValidationError(
-                code="MISSING_PRODUCT",
-                message=f'Line {line_number}: product "{line.productId}" is not in the catalogue.',
-                lineIndex=index,
-                productId=line.productId,
+                code="UNSUPPORTED_CURRENCY",
+                message=(
+                    f'Currency "{request.currency}" is not supported. '
+                    f"Choose one of {', '.join(SUPPORTED_CURRENCIES)}."
+                ),
+            )
+        )
+
+    personnel = request.personnel if isinstance(request.personnel, list) else []
+    tooling = request.tooling if isinstance(request.tooling, list) else []
+    infrastructure = request.infrastructure if isinstance(request.infrastructure, list) else []
+    other = request.other if isinstance(request.other, list) else []
+
+    if not personnel and not tooling and not infrastructure and not other:
+        errors.append(
+            EstimateValidationError(
+                code="EMPTY_REQUEST",
+                message=(
+                    "Add at least one cost line (personnel, tooling, infrastructure or "
+                    "other) to calculate an estimate."
+                ),
             )
         )
         return errors
 
-    quantity = line.quantity
-    if not isinstance(quantity, (int, float)) or not math.isfinite(quantity):
-        errors.append(
-            EstimateValidationError(
-                code="INVALID_QUANTITY",
-                message=f"Line {line_number}: quantity must be a finite number.",
-                lineIndex=index,
-                productId=product.id,
-            )
-        )
-    elif quantity < 0:
-        errors.append(
-            EstimateValidationError(
-                code="INVALID_QUANTITY",
-                message=f"Line {line_number}: quantity must not be negative.",
-                lineIndex=index,
-                productId=product.id,
-            )
-        )
-
-    if line.unit is not None:
-        if not is_supported_unit(line.unit):
+    for index, line in enumerate(personnel):
+        line_number = index + 1
+        if not _is_non_empty_text(line.role):
             errors.append(
                 EstimateValidationError(
-                    code="INVALID_UNIT",
-                    message=f'Line {line_number}: unit "{line.unit}" is not supported.',
+                    code="INVALID_PERSONNEL",
+                    message=f"Personnel line {line_number}: role is required.",
+                    section="personnel",
                     lineIndex=index,
-                    productId=product.id,
                 )
             )
-        elif line.unit != product.unit:
-            if are_units_compatible(line.unit, product.unit):
-                errors.append(
-                    EstimateValidationError(
-                        code="UNIT_CONVERSION_UNSUPPORTED",
-                        message=(
-                            f'Line {line_number}: unit "{line.unit}" is compatible with '
-                            f'"{product.unit}" but unit conversion is not supported yet.'
-                        ),
-                        lineIndex=index,
-                        productId=product.id,
-                    )
+        if not _is_finite_non_negative(line.people):
+            errors.append(
+                EstimateValidationError(
+                    code="INVALID_PERSONNEL",
+                    message=(
+                        f"Personnel line {line_number}: number of people must be a finite "
+                        "number that is 0 or more."
+                    ),
+                    section="personnel",
+                    lineIndex=index,
                 )
-            else:
-                errors.append(
-                    EstimateValidationError(
-                        code="INCOMPATIBLE_UNIT",
-                        message=(
-                            f'Line {line_number}: unit "{line.unit}" is incompatible with '
-                            f'"{product.unit}".'
-                        ),
-                        lineIndex=index,
-                        productId=product.id,
-                    )
+            )
+        if not _is_finite_non_negative(line.hours):
+            errors.append(
+                EstimateValidationError(
+                    code="INVALID_PERSONNEL",
+                    message=(
+                        f"Personnel line {line_number}: hours must be a finite number that "
+                        "is 0 or more."
+                    ),
+                    section="personnel",
+                    lineIndex=index,
                 )
+            )
+        if not _is_finite_non_negative(line.hourlyRate):
+            errors.append(
+                EstimateValidationError(
+                    code="INVALID_PERSONNEL",
+                    message=(
+                        f"Personnel line {line_number}: hourly rate must be a finite "
+                        "number that is 0 or more."
+                    ),
+                    section="personnel",
+                    lineIndex=index,
+                )
+            )
 
-    price = product.unitPrice
-    if not isinstance(price, (int, float)) or not math.isfinite(price) or price <= 0:
-        errors.append(
-            EstimateValidationError(
-                code="INVALID_PRICE",
-                message=f'Line {line_number}: product "{product.id}" has an invalid unit price.',
-                lineIndex=index,
-                productId=product.id,
+    for index, line in enumerate(tooling):
+        line_number = index + 1
+        if not _is_non_empty_text(line.name):
+            errors.append(
+                EstimateValidationError(
+                    code="INVALID_TOOLING",
+                    message=f"Tooling line {line_number}: name is required.",
+                    section="tooling",
+                    lineIndex=index,
+                )
             )
-        )
+        if not _is_finite_non_negative(line.amount):
+            errors.append(
+                EstimateValidationError(
+                    code="INVALID_TOOLING",
+                    message=(
+                        f"Tooling line {line_number}: cost must be a finite number that is "
+                        "0 or more."
+                    ),
+                    section="tooling",
+                    lineIndex=index,
+                )
+            )
 
-    if not _is_valid_price_source(product.priceSource):
-        errors.append(
-            EstimateValidationError(
-                code="INVALID_PRICE_SOURCE",
-                message=(
-                    f'Line {line_number}: product "{product.id}" is missing price source metadata.'
-                ),
-                lineIndex=index,
-                productId=product.id,
+    for index, line in enumerate(infrastructure):
+        line_number = index + 1
+        if not _is_non_empty_text(line.name):
+            errors.append(
+                EstimateValidationError(
+                    code="INVALID_INFRASTRUCTURE",
+                    message=f"Infrastructure line {line_number}: name is required.",
+                    section="infrastructure",
+                    lineIndex=index,
+                )
             )
-        )
+        if not _is_finite_non_negative(line.monthlyCost):
+            errors.append(
+                EstimateValidationError(
+                    code="INVALID_INFRASTRUCTURE",
+                    message=(
+                        f"Infrastructure line {line_number}: monthly cost must be a finite "
+                        "number that is 0 or more."
+                    ),
+                    section="infrastructure",
+                    lineIndex=index,
+                )
+            )
+        if not _is_finite_non_negative(line.months):
+            errors.append(
+                EstimateValidationError(
+                    code="INVALID_INFRASTRUCTURE",
+                    message=(
+                        f"Infrastructure line {line_number}: months must be a finite number "
+                        "that is 0 or more."
+                    ),
+                    section="infrastructure",
+                    lineIndex=index,
+                )
+            )
+
+    for index, line in enumerate(other):
+        line_number = index + 1
+        if not _is_non_empty_text(line.description):
+            errors.append(
+                EstimateValidationError(
+                    code="INVALID_OTHER",
+                    message=f"Other cost line {line_number}: description is required.",
+                    section="other",
+                    lineIndex=index,
+                )
+            )
+        if not _is_finite_non_negative(line.amount):
+            errors.append(
+                EstimateValidationError(
+                    code="INVALID_OTHER",
+                    message=(
+                        f"Other cost line {line_number}: cost must be a finite number that "
+                        "is 0 or more."
+                    ),
+                    section="other",
+                    lineIndex=index,
+                )
+            )
 
     return errors
 
 
-def _collect_price_sources(line_results: list[LineCalculationResult]) -> list[PriceSource]:
-    sources: list[PriceSource] = []
-    for line in line_results:
-        source = line.priceSource
-        exists = any(
-            existing.label == source.label
-            and existing.priceDate == source.priceDate
-            and existing.currency == source.currency
-            for existing in sources
-        )
-        if not exists:
-            sources.append(source)
-    return sources
+def _personnel_cost(line: PersonnelLine) -> float:
+    return round_currency(line.people * line.hours * line.hourlyRate)
 
 
-def validate_estimate_request(
-    request: EstimateRequest,
-    catalogue: ProductCatalogue = SAMPLE_PRODUCT_CATALOGUE,
-) -> list[EstimateValidationError]:
-    lines = request.lines if isinstance(request.lines, list) else []
-    if len(lines) == 0:
-        return [
-            EstimateValidationError(
-                code="EMPTY_REQUEST",
-                message="Add at least one line item to calculate an estimate.",
-            )
-        ]
-
-    errors: list[EstimateValidationError] = []
-    for index, line in enumerate(lines):
-        errors.extend(_validate_line(line, index, catalogue))
-    return errors
-
-
-def calculate_estimate(
-    request: EstimateRequest,
-    catalogue: ProductCatalogue = SAMPLE_PRODUCT_CATALOGUE,
-) -> EstimateCalculation:
-    errors = validate_estimate_request(request, catalogue)
+def calculate_estimate(request: ProjectEstimateRequest) -> EstimateCalculation:
+    errors = validate_estimate_request(request)
     if errors:
         return EstimateCalculation(ok=False, errors=tuple(errors))
 
-    line_results: list[LineCalculationResult] = []
     result_errors: list[EstimateValidationError] = []
 
-    for index, line in enumerate(request.lines):
-        product = find_product(catalogue, line.productId)
-        if product is None:
-            result_errors.append(
-                EstimateValidationError(
-                    code="MISSING_PRODUCT",
-                    message=(
-                        f'Line {index + 1}: product "{line.productId}" is not in the catalogue.'
-                    ),
-                    lineIndex=index,
-                    productId=line.productId,
-                )
-            )
-            continue
-
-        line_subtotal = round_currency(line.quantity * product.unitPrice)
-        if not math.isfinite(line_subtotal):
+    personnel_results: list[PersonnelResult] = []
+    for index, line in enumerate(request.personnel):
+        cost = _personnel_cost(line)
+        if not math.isfinite(cost):
             result_errors.append(
                 EstimateValidationError(
                     code="NON_FINITE_RESULT",
-                    message=f"Line {index + 1}: subtotal is not a finite number.",
+                    message=f"Personnel line {index + 1}: cost is not a finite number.",
+                    section="personnel",
                     lineIndex=index,
-                    productId=product.id,
                 )
             )
             continue
+        personnel_results.append(
+            PersonnelResult(
+                role=line.role,
+                people=line.people,
+                hours=line.hours,
+                hourlyRate=line.hourlyRate,
+                cost=cost,
+            )
+        )
 
-        line_results.append(
-            LineCalculationResult(
-                productId=product.id,
-                productName=product.name,
-                category=product.category,
-                unit=line.unit if line.unit is not None else product.unit,
-                quantity=line.quantity,
-                unitPrice=product.unitPrice,
-                lineSubtotal=line_subtotal,
-                priceSource=product.priceSource,
-                label=line.label,
+    tooling_results: list[ToolingResult] = []
+    for index, line in enumerate(request.tooling):
+        cost = round_currency(line.amount)
+        if not math.isfinite(cost):
+            result_errors.append(
+                EstimateValidationError(
+                    code="NON_FINITE_RESULT",
+                    message=f"Tooling line {index + 1}: cost is not a finite number.",
+                    section="tooling",
+                    lineIndex=index,
+                )
+            )
+            continue
+        tooling_results.append(ToolingResult(name=line.name, amount=line.amount, cost=cost))
+
+    infrastructure_results: list[InfrastructureResult] = []
+    for index, line in enumerate(request.infrastructure):
+        cost = round_currency(line.monthlyCost * line.months)
+        if not math.isfinite(cost):
+            result_errors.append(
+                EstimateValidationError(
+                    code="NON_FINITE_RESULT",
+                    message=f"Infrastructure line {index + 1}: cost is not a finite number.",
+                    section="infrastructure",
+                    lineIndex=index,
+                )
+            )
+            continue
+        infrastructure_results.append(
+            InfrastructureResult(
+                name=line.name,
+                monthlyCost=line.monthlyCost,
+                months=line.months,
+                cost=cost,
+            )
+        )
+
+    other_results: list[OtherCostResult] = []
+    for index, line in enumerate(request.other):
+        cost = round_currency(line.amount)
+        if not math.isfinite(cost):
+            result_errors.append(
+                EstimateValidationError(
+                    code="NON_FINITE_RESULT",
+                    message=f"Other cost line {index + 1}: cost is not a finite number.",
+                    section="other",
+                    lineIndex=index,
+                )
+            )
+            continue
+        other_results.append(
+            OtherCostResult(
+                description=line.description,
+                amount=line.amount,
+                cost=cost,
             )
         )
 
     if result_errors:
         return EstimateCalculation(ok=False, errors=tuple(result_errors))
 
-    subtotal = round_currency(sum(line.lineSubtotal for line in line_results))
-    if not math.isfinite(subtotal):
+    personnel_cost = round_currency(sum(line.cost for line in personnel_results))
+    tooling_cost = round_currency(sum(line.cost for line in tooling_results))
+    infrastructure_cost = round_currency(sum(line.cost for line in infrastructure_results))
+    other_cost = round_currency(sum(line.cost for line in other_results))
+    total = round_currency(personnel_cost + tooling_cost + infrastructure_cost + other_cost)
+
+    if not math.isfinite(total):
         return EstimateCalculation(
             ok=False,
             errors=(
@@ -244,13 +342,34 @@ def calculate_estimate(
             ),
         )
 
-    result = EstimateResult(
+    result = ProjectEstimateResult(
         projectName=request.projectName,
-        currency="INR",
-        itemCount=len(line_results),
-        lineResults=line_results,
-        subtotal=subtotal,
-        total=subtotal,
-        priceSources=_collect_price_sources(line_results),
+        currency=request.currency,
+        personnel=PersonnelSection(lines=personnel_results, subtotal=personnel_cost),
+        tooling=ToolingSection(lines=tooling_results, subtotal=tooling_cost),
+        infrastructure=InfrastructureSection(
+            lines=infrastructure_results, subtotal=infrastructure_cost
+        ),
+        other=OtherCostSection(lines=other_results, subtotal=other_cost),
+        personnelCost=personnel_cost,
+        toolingCost=tooling_cost,
+        infrastructureCost=infrastructure_cost,
+        otherCost=other_cost,
+        lineCount=(
+            len(personnel_results)
+            + len(tooling_results)
+            + len(infrastructure_results)
+            + len(other_results)
+        ),
+        total=total,
+        assumptions=build_assumptions(request.currency),
     )
     return EstimateCalculation(ok=True, result=result)
+
+
+__all__ = [
+    "EstimateCalculation",
+    "build_assumptions",
+    "calculate_estimate",
+    "validate_estimate_request",
+]

@@ -1,19 +1,19 @@
 # TallyBuild AI
 
-**Building-product cost estimation for construction projects.**
+**Project cost estimation across personnel, tooling, infrastructure and other costs.**
 
 TallyBuild AI is a hackathon project for **KLE TECH HACKFEST 2026, Domain 4C — AI for Cost
-Estimation of Building Products**. The product vision is a construction-tech workspace where
-estimators can create project estimates, compare building-product alternatives and run
-what-if scenario analysis on quantities and material prices.
+Estimation**. The workspace lets estimators build a project estimate from cost sections
+(team roles and hours, tooling, infrastructure and other costs), see an instant deterministic
+breakdown, compare alternatives and run what-if scenario analysis.
 
 This repository currently contains **Phase 00 (project foundation), Phase 01 (premium UI
 shell and dashboard) and Phase 02 (deterministic estimation)**: a React SPA, a pure
 TypeScript estimation core in `src/estimation/`, an API contract in `docs/api-contract.md`,
 a FastAPI service in `backend/` that reproduces the core over HTTP, and a typed frontend API
 client (`src/api/`) that **wires the New Estimate flow to that service**. When the service
-is unreachable the app stays usable and shows a clearly labelled offline demo catalogue
-instead of fabricating prices. There is no database, no authentication and no AI or pricing
+is unreachable the app stays usable and shows a clearly labelled offline state instead of
+fabricating prices. There is no database, no authentication and no AI or pricing
 service yet. Every number shown in the interface and returned by the API is **illustrative
 demo data**, not real customer, market or supplier data.
 
@@ -63,9 +63,9 @@ The dev server starts at `http://localhost:5173` (Vite prints the exact URL).
 
 ### Backend (optional, used by the New Estimate flow)
 
-The FastAPI service in `backend/` prices the material lines submitted from the New Estimate
-screen. It is optional: with it stopped, the app still loads and shows an honest "offline
-demo catalogue" state. See [`backend/README.md`](./backend/README.md) for details.
+The FastAPI service in `backend/` totals the cost lines submitted from the New Estimate
+screen. It is optional: with it stopped, the app still loads and shows an honest offline
+state. See [`backend/README.md`](./backend/README.md) for details.
 
 ```bash
 cd backend
@@ -106,7 +106,7 @@ src/
     estimates/     Estimates toolbar/table + New Estimate line-items and result views
   constants/       Navigation items, labels and page titles
   data/            Sample (demo) estimates, clearly flagged as illustrative
-  estimation/      Deterministic cost-calculation core (units, rounding, catalogue)
+  estimation/      Deterministic cost-calculation core (currencies, rounding, calculate)
   pages/           Route-level screens
   store/           Client-side estimates context backed by localStorage
   styles/          Global tokens and base styles
@@ -115,7 +115,7 @@ src/
 
 backend/                    FastAPI estimation service (optional, called by the UI)
   app/
-    routers/       HTTP endpoints (health, products, estimates)
+    routers/       HTTP endpoints (health, estimates)
     estimation/    Python port of the deterministic core
   tests/           pytest suite
 ```
@@ -124,9 +124,8 @@ backend/                    FastAPI estimation service (optional, called by the 
 
 `src/styles/tokens.css` is the single source of truth for:
 
-- **Colour** — deep charcoal/navy shell (`--color-shell`), warm amber accent
-  (`--color-accent`), light neutral surfaces (`--color-canvas`, `--color-surface`) and
-  semantic status colours.
+- **Colour** — a dark shell (`--color-shell`), an accent (`--color-accent`) and a canvas /
+  surface scale (`--color-canvas`, `--color-surface`, …) plus semantic status colours.
 - **Typography** — a system font stack, a modular size scale and weight tokens.
 - **Spacing** — a 4px-based scale (`--space-1` … `--space-10`).
 - **Radii, shadows, transitions and layout metrics** (sidebar width, top bar height).
@@ -140,19 +139,21 @@ tokens instead of hard-coded values. Breakpoints used in media queries: `640px`,
 - Sample estimates are hard-coded in `src/data/sampleEstimates.ts` and labelled as
   illustrative throughout the UI.
 - Estimates created in the UI are stored **only in your browser** via `localStorage`.
-- When you click **Calculate estimate**, the material lines you entered are sent to the
-  locally running estimation API (`/api/v1/estimates/calculate`). No other data leaves the
-  browser and nothing is sent to any third party.
+- When you click **Calculate estimate**, the cost lines you entered (personnel, tooling,
+  infrastructure and other) are sent to the locally running estimation API
+  (`/api/v1/estimates/calculate`). No other data leaves the browser and nothing is sent to
+  any third party.
 - No secrets are required. `.env.example` documents the optional `VITE_API_BASE_URL`; real
   credentials or `.env` files must never be committed.
 
 ## Current limitations
 
-- The estimation engine is wired into the New Estimate flow only. Other screens
-  (comparison, what-if) are still designed placeholders marked "coming soon".
+- The estimation engine is wired into the New Estimate flow (client-side form + API call).
+- Scripted what-if scenario analysis is not implemented; the What If screen shows a designed
+  placeholder marked as coming in Phase 03. Comparison compares existing estimates
+  client-side only.
 - The backend is wired for **local development** (Vite proxy) only; production API hosting,
   CORS and deployment are not configured yet.
-- Product comparison and what-if analysis are not implemented.
 - No persistence server, authentication, live pricing, product datasets or AI
   recommendations.
 - Data can be cleared at any time by clearing browser site data for `localhost`.

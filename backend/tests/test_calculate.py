@@ -4,128 +4,100 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.estimation.calculate import calculate_estimate
-from app.schemas import EstimateLineItem, EstimateRequest
+from app.schemas import (
+    InfrastructureLine,
+    OtherCostLine,
+    PersonnelLine,
+    ProjectEstimateRequest,
+    ToolingLine,
+)
 
 URL = "/api/v1/estimates/calculate"
 
 
-def _request(lines: list[EstimateLineItem], project_name: str | None = None) -> EstimateRequest:
-    return EstimateRequest(projectName=project_name, lines=lines)
+def _request(**overrides: object) -> ProjectEstimateRequest:
+    data: dict[str, object] = {
+        "currency": "USD",
+        "personnel": [],
+        "tooling": [],
+        "infrastructure": [],
+        "other": [],
+    }
+    data.update(overrides)
+    return ProjectEstimateRequest.model_validate(data)
 
 
-def test_documented_multi_line_example(client: TestClient) -> None:
+def test_documented_personnel_example(client: TestClient) -> None:
     response = client.post(
         URL,
         json={
-            "projectName": "Demo villa",
-            "lines": [
-                {
-                    "productId": "cement-opc-53-grade",
-                    "quantity": 320,
-                    "unit": "bag",
-                    "label": "Foundation",
-                },
-                {
-                    "productId": "steel-tmt-fe500",
-                    "quantity": 4.5,
-                    "unit": "tonne",
-                    "label": "Reinforcement",
-                },
-                {"productId": "brick-red-clay", "quantity": 12000, "unit": "piece"},
-            ],
+            "projectName": "Product rebuild",
+            "currency": "USD",
+            "personnel": [{"role": "Engineer", "people": 2, "hours": 100, "hourlyRate": 50}],
+            "tooling": [],
+            "infrastructure": [],
+            "other": [],
         },
     )
 
     assert response.status_code == 200
     body = response.json()
-    assert body["projectName"] == "Demo villa"
-    assert body["currency"] == "INR"
-    assert body["itemCount"] == 3
-    assert [line["lineSubtotal"] for line in body["lineResults"]] == [131200, 306000, 108000]
-    assert body["subtotal"] == 545200
-    assert body["total"] == 545200
-    assert len(body["priceSources"]) == 1
-    assert "label" not in body["lineResults"][2]
+    assert body["projectName"] == "Product rebuild"
+    assert body["currency"] == "USD"
+    assert body["lineCount"] == 1
+    assert body["personnel"]["lines"][0]["cost"] == 10000
+    assert body["personnelCost"] == 10000
+    assert body["total"] == 10000
+    assert len(body["assumptions"]) > 0
 
 
-def test_single_line_subtotal(client: TestClient) -> None:
+def test_multi_section_example(client: TestClient) -> None:
     response = client.post(
         URL,
-        json={"lines": [{"productId": "cement-opc-53-grade", "quantity": 10}]},
+        json={
+            "projectName": "Platform build",
+            "currency": "EUR",
+            "personnel": [{"role": "Lead", "people": 1, "hours": 200, "hourlyRate": 80}],
+            "tooling": [{"name": "Design suite", "amount": 1200}],
+            "infrastructure": [{"name": "Cloud", "monthlyCost": 900, "months": 6}],
+            "other": [{"description": "Licence transfer", "amount": 500}],
+        },
     )
 
     assert response.status_code == 200
     body = response.json()
-    assert body["lineResults"][0]["lineSubtotal"] == 4100
-    assert body["total"] == 4100
-    assert "projectName" not in body
+    assert body["personnelCost"] == 16000
+    assert body["toolingCost"] == 1200
+    assert body["infrastructureCost"] == 5400
+    assert body["otherCost"] == 500
+    assert body["total"] == 23100
+    assert body["lineCount"] == 4
+    assert "projectName" not in body or body["projectName"] == "Platform build"
 
 
-def test_zero_quantity_is_a_valid_line(client: TestClient) -> None:
-    response = client.post(URL, json={"lines": [{"productId": "brick-red-clay", "quantity": 0}]})
+def test_zero_values_are_valid(client: TestClient) -> None:
+    response = client.post(
+        URL,
+        json={
+            "currency": "INR",
+            "personnel": [{"role": "Intern", "people": 0, "hours": 0, "hourlyRate": 0}],
+            "tooling": [],
+            "infrastructure": [],
+            "other": [],
+        },
+    )
 
     assert response.status_code == 200
     body = response.json()
-    assert body["lineResults"][0]["lineSubtotal"] == 0
+    assert body["personnelCost"] == 0
     assert body["total"] == 0
 
 
-def test_negative_quantity_returns_422_with_detail(client: TestClient) -> None:
-    response = client.post(URL, json={"lines": [{"productId": "brick-red-clay", "quantity": -5}]})
-
-    assert response.status_code == 422
-    body = response.json()
-    assert body["error"]["code"] == "VALIDATION_ERROR"
-    detail = body["error"]["details"][0]
-    assert detail["code"] == "INVALID_QUANTITY"
-    assert detail["lineIndex"] == 0
-    assert detail["productId"] == "brick-red-clay"
-
-
-def test_unknown_product_returns_422(client: TestClient) -> None:
-    response = client.post(URL, json={"lines": [{"productId": "does-not-exist", "quantity": 1}]})
-
-    assert response.status_code == 422
-    detail = response.json()["error"]["details"][0]
-    assert detail["code"] == "MISSING_PRODUCT"
-    assert detail["productId"] == "does-not-exist"
-
-
-def test_incompatible_unit_returns_422(client: TestClient) -> None:
+def test_empty_request_returns_empty_request(client: TestClient) -> None:
     response = client.post(
         URL,
-        json={"lines": [{"productId": "cement-opc-53-grade", "quantity": 1, "unit": "kg"}]},
+        json={"currency": "USD", "personnel": [], "tooling": [], "infrastructure": [], "other": []},
     )
-
-    assert response.status_code == 422
-    detail = response.json()["error"]["details"][0]
-    assert detail["code"] == "INCOMPATIBLE_UNIT"
-
-
-def test_same_family_unit_returns_conversion_unsupported(client: TestClient) -> None:
-    response = client.post(
-        URL,
-        json={"lines": [{"productId": "steel-tmt-fe500", "quantity": 1, "unit": "kg"}]},
-    )
-
-    assert response.status_code == 422
-    assert response.json()["error"]["details"][0]["code"] == "UNIT_CONVERSION_UNSUPPORTED"
-
-
-def test_unsupported_unit_is_domain_validation_not_malformed(client: TestClient) -> None:
-    response = client.post(
-        URL,
-        json={"lines": [{"productId": "cement-opc-53-grade", "quantity": 1, "unit": "litre"}]},
-    )
-
-    assert response.status_code == 422
-    body = response.json()
-    assert body["error"]["code"] == "VALIDATION_ERROR"
-    assert body["error"]["details"][0]["code"] == "INVALID_UNIT"
-
-
-def test_empty_lines_returns_empty_request(client: TestClient) -> None:
-    response = client.post(URL, json={"lines": []})
 
     assert response.status_code == 422
     body = response.json()
@@ -133,35 +105,102 @@ def test_empty_lines_returns_empty_request(client: TestClient) -> None:
     assert body["error"]["details"][0]["code"] == "EMPTY_REQUEST"
 
 
-def test_multiple_failing_lines_are_all_reported(client: TestClient) -> None:
+def test_unsupported_currency_returns_domain_error(client: TestClient) -> None:
     response = client.post(
         URL,
         json={
-            "lines": [
-                {"productId": "does-not-exist", "quantity": 1},
-                {"productId": "cement-opc-53-grade", "quantity": -3},
-            ]
+            "currency": "GBP",
+            "personnel": [{"role": "Engineer", "people": 1, "hours": 1, "hourlyRate": 1}],
+            "tooling": [],
+            "infrastructure": [],
+            "other": [],
+        },
+    )
+
+    assert response.status_code == 422
+    detail = response.json()["error"]["details"][0]
+    assert detail["code"] == "UNSUPPORTED_CURRENCY"
+    assert "section" not in detail
+
+
+def test_invalid_personnel_reports_every_problem(client: TestClient) -> None:
+    response = client.post(
+        URL,
+        json={
+            "currency": "USD",
+            "personnel": [{"role": "   ", "people": -1, "hours": 10, "hourlyRate": 20}],
+            "tooling": [],
+            "infrastructure": [],
+            "other": [],
         },
     )
 
     assert response.status_code == 422
     details = response.json()["error"]["details"]
-    assert len(details) == 2
-    assert details[0]["code"] == "MISSING_PRODUCT"
-    assert details[1]["code"] == "INVALID_QUANTITY"
+    assert [detail["code"] for detail in details] == ["INVALID_PERSONNEL", "INVALID_PERSONNEL"]
+    assert [detail["section"] for detail in details] == ["personnel", "personnel"]
+    assert [detail["lineIndex"] for detail in details] == [0, 0]
 
 
-def test_non_finite_quantity_is_rejected_functionally() -> None:
-    for quantity in (math.nan, math.inf, -math.inf):
+def test_invalid_tooling_amount(client: TestClient) -> None:
+    response = client.post(
+        URL,
+        json={
+            "currency": "USD",
+            "personnel": [],
+            "tooling": [{"name": "Suite", "amount": -5}],
+            "infrastructure": [],
+            "other": [],
+        },
+    )
+
+    assert response.status_code == 422
+    detail = response.json()["error"]["details"][0]
+    assert detail["code"] == "INVALID_TOOLING"
+    assert detail["section"] == "tooling"
+    assert detail["lineIndex"] == 0
+
+
+def test_invalid_other_cost(client: TestClient) -> None:
+    response = client.post(
+        URL,
+        json={
+            "currency": "USD",
+            "personnel": [],
+            "tooling": [],
+            "infrastructure": [],
+            "other": [{"description": "", "amount": 100}],
+        },
+    )
+
+    assert response.status_code == 422
+    detail = response.json()["error"]["details"][0]
+    assert detail["code"] == "INVALID_OTHER"
+    assert detail["section"] == "other"
+
+
+def test_non_finite_line_is_reported_functionally() -> None:
+    for people in (math.nan, math.inf, -math.inf):
         calculation = calculate_estimate(
-            _request([EstimateLineItem(productId="brick-red-clay", quantity=quantity)])
+            _request(
+                personnel=[{"role": "Engineer", "people": people, "hours": 1, "hourlyRate": 1}]
+            )
         )
         assert calculation.ok is False
-        assert any(error.code == "INVALID_QUANTITY" for error in calculation.errors)
+        assert any(error.code == "INVALID_PERSONNEL" for error in calculation.errors)
 
 
-def test_missing_lines_key_returns_400_malformed(client: TestClient) -> None:
-    response = client.post(URL, json={"projectName": "No lines"})
+def test_wrong_type_returns_400_malformed(client: TestClient) -> None:
+    response = client.post(
+        URL,
+        json={
+            "currency": "USD",
+            "personnel": [{"role": "Engineer", "people": "many", "hours": 1, "hourlyRate": 1}],
+            "tooling": [],
+            "infrastructure": [],
+            "other": [],
+        },
+    )
 
     assert response.status_code == 400
     assert response.json()["error"]["code"] == "REQUEST_MALFORMED"
@@ -177,20 +216,58 @@ def test_invalid_json_returns_400(client: TestClient) -> None:
     assert response.status_code == 400
 
 
-def test_wrong_type_quantity_returns_400(client: TestClient) -> None:
-    response = client.post(
-        URL,
-        json={"lines": [{"productId": "brick-red-clay", "quantity": "many"}]},
-    )
-
-    assert response.status_code == 400
-    assert response.json()["error"]["code"] == "REQUEST_MALFORMED"
-
-
 @pytest.mark.parametrize("literal", ["Infinity", "-Infinity", "NaN"])
-def test_non_finite_quantity_over_http(client: TestClient, literal: str) -> None:
-    body = f'{{"lines": [{{"productId": "brick-red-clay", "quantity": {literal}}}]}}'
+def test_non_finite_values_over_http(client: TestClient, literal: str) -> None:
+    body = (
+        '{"currency": "USD", "personnel": '
+        f'[{{"role": "Engineer", "people": {literal}, "hours": 1, "hourlyRate": 1}}], '
+        '"tooling": [], "infrastructure": [], "other": []}'
+    )
     response = client.post(URL, content=body, headers={"content-type": "application/json"})
 
     assert response.status_code == 422
-    assert response.json()["error"]["details"][0]["code"] == "INVALID_QUANTITY"
+    assert response.json()["error"]["details"][0]["code"] == "INVALID_PERSONNEL"
+
+
+def test_project_name_is_trimmed(client: TestClient) -> None:
+    response = client.post(
+        URL,
+        json={
+            "projectName": "  Padded  ",
+            "currency": "USD",
+            "personnel": [{"role": "Engineer", "people": 1, "hours": 1, "hourlyRate": 10}],
+            "tooling": [],
+            "infrastructure": [],
+            "other": [],
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["projectName"] == "Padded"
+
+
+def test_missing_arrays_default_to_empty_lists() -> None:
+    calculation = calculate_estimate(ProjectEstimateRequest.model_validate({"currency": "USD"}))
+
+    assert calculation.ok is False
+    assert calculation.errors[0].code == "EMPTY_REQUEST"
+
+
+def test_result_sections_expose_lines_and_subtotals() -> None:
+    request = ProjectEstimateRequest(
+        currency="USD",
+        personnel=[PersonnelLine(role="Engineer", people=1, hours=1, hourlyRate=10)],
+        tooling=[ToolingLine(name="Suite", amount=100)],
+        infrastructure=[InfrastructureLine(name="Cloud", monthlyCost=50, months=2)],
+        other=[OtherCostLine(description="Contingency", amount=25)],
+    )
+    calculation = calculate_estimate(request)
+
+    assert calculation.ok is True
+    assert calculation.result is not None
+    result = calculation.result
+    assert result.personnel.subtotal == 10
+    assert result.tooling.subtotal == 100
+    assert result.infrastructure.subtotal == 100
+    assert result.other.subtotal == 25
+    assert result.total == 235
